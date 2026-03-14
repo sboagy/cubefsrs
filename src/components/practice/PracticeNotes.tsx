@@ -65,7 +65,7 @@ export default function PracticeNotes() {
       <div class="grid md:grid-cols-3 gap-4">
         <Show when={showRecognition()}>
           <textarea
-            class="rounded bg-transparent border border-gray-300 dark:border-gray-700 p-2 h-24"
+            class="rounded border border-gray-300 bg-white text-gray-900 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 p-2 h-24"
             placeholder="Recognition"
             value={recognition()}
             onInput={(e) => setRecognition((e.target as HTMLTextAreaElement).value)}
@@ -74,7 +74,7 @@ export default function PracticeNotes() {
         </Show>
         <Show when={showMnemonic()}>
           <textarea
-            class="rounded bg-transparent border border-gray-300 dark:border-gray-700 p-2 h-24"
+            class="rounded border border-gray-300 bg-white text-gray-900 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 p-2 h-24"
             placeholder="Mnemonic"
             value={mnemonic()}
             onInput={(e) => setMnemonic((e.target as HTMLTextAreaElement).value)}
@@ -83,7 +83,7 @@ export default function PracticeNotes() {
         </Show>
         <Show when={showNotes()}>
           <textarea
-            class="rounded bg-transparent border border-gray-300 dark:border-gray-700 p-2 h-24"
+            class="rounded border border-gray-300 bg-white text-gray-900 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 p-2 h-24"
             placeholder="Notes"
             value={notes()}
             onInput={(e) => setNotes((e.target as HTMLTextAreaElement).value)}

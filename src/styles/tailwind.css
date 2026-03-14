@@ -12,6 +12,13 @@
   }
 }
 
+@layer components {
+  .input {
+    @apply w-full rounded border border-gray-300 bg-white text-gray-900 p-2
+           dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100;
+  }
+}
+
 @layer utilities {
   .scrollbar-thin {
     scrollbar-width: thin;

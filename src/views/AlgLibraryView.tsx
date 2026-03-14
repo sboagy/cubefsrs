@@ -142,7 +142,7 @@ export default function AlgLibraryView() {
       <div class="flex flex-wrap gap-3 items-center">
         <label class="text-sm">Category</label>
         <select
-          class="rounded bg-transparent border border-gray-300 dark:border-gray-700 p-2 text-sm"
+          class="rounded border border-gray-300 bg-white text-gray-900 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 p-2 text-sm"
           value={algs.currentCategory}
           onChange={(e) => setCategory((e.target as HTMLSelectElement).value)}
         >

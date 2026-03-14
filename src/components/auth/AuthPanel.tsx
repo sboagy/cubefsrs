@@ -46,14 +46,14 @@ export default function AuthPanel() {
             <div class="text-gray-500">Offline</div>
             <form class="grid gap-2" onSubmit={doEmailLogin}>
               <input
-                class="rounded bg-transparent border border-gray-300 dark:border-gray-700 p-2"
+                class="rounded border border-gray-300 bg-white text-gray-900 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 p-2"
                 type="email"
                 value={email()}
                 onInput={(e) => setEmail((e.target as HTMLInputElement).value)}
                 placeholder="Email"
               />
               <input
-                class="rounded bg-transparent border border-gray-300 dark:border-gray-700 p-2"
+                class="rounded border border-gray-300 bg-white text-gray-900 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 p-2"
                 type="password"
                 value={password()}
                 onInput={(e) => setPassword((e.target as HTMLInputElement).value)}
