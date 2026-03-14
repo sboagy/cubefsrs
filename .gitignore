@@ -183,3 +183,5 @@ practice_queues_recovered.csv
 
 # VS Code workspace files that may contain local paths
 .vscode/*.code-workspace
+
+_notes
