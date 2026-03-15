@@ -168,8 +168,10 @@ export default function CubeViewer(props: Props) {
 
 	// Apply physical cube moves visually to TwistyPlayer
 	createEffect(() => {
-		void device.lastMoveAt; // track timestamp
-		const mv = device.lastMove;
+		// React only to the move timestamp edge; reading the token untracked avoids a second run for the same turn.
+		const moveAt = device.lastMoveAt;
+		const mv = untrack(() => device.lastMove);
+		if (moveAt == null) return;
 		if (!mv || !player) return;
 		untrack(() => {
 			try {
