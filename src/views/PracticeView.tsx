@@ -42,6 +42,7 @@ import {
 	resetTracking,
 	segmentStates,
 	setAlgorithm,
+	tracking,
 } from "@/stores/tracking";
 
 function segmentClass(state: string) {
@@ -215,7 +216,11 @@ export default function PracticeView() {
 	// Keep tracking algorithm in sync when case changes
 	createEffect(() => {
 		const alg = baseAlg();
-		if (alg) setAlgorithm(alg);
+		if (!alg) return;
+		// This effect also handles the initial mount. Re-applying the same algorithm
+		// after a move would reset tracking back to the first letter.
+		if (alg === untrack(() => tracking.rawAlg)) return;
+		setAlgorithm(alg);
 	});
 
 	onMount(() => {
@@ -234,7 +239,6 @@ export default function PracticeView() {
 			}
 		}
 
-		if (baseAlg()) setAlgorithm(baseAlg());
 	});
 
 	onCleanup(() => {
