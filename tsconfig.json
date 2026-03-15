@@ -16,8 +16,12 @@
 		"jsx": "preserve",
 		"jsxImportSource": "solid-js",
 		"baseUrl": ".",
+		"skipLibCheck": true,
 		"paths": {
-			"@/*": ["./src/*"]
+			"@/*": ["./src/*"],
+			"@oosync/*": ["./node_modules/oosync/src/*"],
+			"@shared-generated/*": ["./shared/generated/*"],
+			"@sync-schema/*": ["./shared/sync-schema/*"]
 		}
 	},
 	"include": ["src"]

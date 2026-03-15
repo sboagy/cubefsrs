@@ -10,13 +10,13 @@ import { createBrowserSqliteClient } from "oosync/runtime/browser-sqlite";
 // eslint-disable-next-line import/no-unresolved
 import sqlWasmUrl from "sql.js/dist/sql-wasm.wasm?url";
 import * as schema from "../../../drizzle/schema-sqlite";
-import { browserSqliteHooks } from "./oosync-browser-sqlite-hooks";
 import {
 	SYNCABLE_TABLES,
 	TABLE_REGISTRY,
 	TABLE_SYNC_ORDER,
 	TABLE_TO_SCHEMA_KEY,
 } from "../../../shared/table-meta";
+import { browserSqliteHooks } from "./oosync-browser-sqlite-hooks";
 
 export const browserSqliteClient = createBrowserSqliteClient({
 	schema,
@@ -40,7 +40,7 @@ export const browserSqliteClient = createBrowserSqliteClient({
 	},
 	databaseVersion: 1,
 	schemaVersion: "1.0.0",
-	migrationFiles: [],
+	migrationFiles: ["/drizzle/migrations/sqlite/0000_sticky_riptide.sql"],
 	forceResetQueryParams: [
 		{ key: "reset", value: "true" },
 		{ key: "migrate", value: "uuid" },
