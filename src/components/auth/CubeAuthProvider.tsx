@@ -13,8 +13,12 @@ import {
 	loadPracticeFromDb,
 	loadUserSettingsFromDb,
 } from "@/lib/db/store-loaders";
+import { startSyncWorker } from "@/lib/sync";
 import { getSupabaseClient } from "@/services/supabase";
 import { algs } from "@/stores/algs";
+
+// Holds the stop function returned by startSyncWorker; cleared on sign-out.
+let stopSync: (() => void) | null = null;
 
 /**
  * App-level auth provider for CubeFSRS.
@@ -66,11 +70,35 @@ const CubeAuthProvider: ParentComponent = (props) => {
 					await migrateLocalStorageToSqlite(db, user.id, nameToDbId);
 
 					setDbReady(true);
+
+					// 6. Start background sync between local SQLite and Supabase
+					const supabase = getSupabaseClient();
+					if (supabase) {
+						const { stop } = startSyncWorker(db, {
+							supabase,
+							userId: user.id,
+							syncIntervalMs: 5000,
+							realtimeEnabled: false,
+							onSyncComplete: (result) => {
+								if (result.errors.length > 0) {
+									console.warn(
+										"[CubeAuthProvider] sync errors:",
+										result.errors,
+									);
+								}
+							},
+						});
+						stopSync = stop;
+					}
 				} catch (err) {
 					console.error("[CubeAuthProvider] onSignIn DB init failed:", err);
 				}
 			}}
 			onSignOut={async () => {
+				// Stop background sync before tearing down the DB
+				stopSync?.();
+				stopSync = null;
+
 				setDbReady(false);
 				setCurrentUserId(null);
 				try {

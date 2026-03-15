@@ -1,0 +1,27 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "lib": ["ES2022", "WebWorker"],
+    "types": ["@cloudflare/workers-types"],
+    "skipLibCheck": true,
+    "strict": true,
+    "outDir": "./dist",
+    "allowImportingTsExtensions": true,
+    "noEmit": true,
+    "baseUrl": ".",
+    "paths": {
+      "@oosync/*": ["../node_modules/oosync/src/*"],
+      "@oosync-worker/*": ["../node_modules/oosync/worker/src/*"],
+      "@shared-generated/*": ["../shared/generated/*"],
+      "@sync-schema/*": ["../shared/sync-schema/*"]
+    }
+  },
+  "include": [
+    "src/**/*",
+    "../shared/generated/**/*",
+    "../node_modules/oosync/src/shared/**/*",
+    "../node_modules/oosync/worker/src/**/*"
+  ]
+}
