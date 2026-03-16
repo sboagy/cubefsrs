@@ -14,10 +14,12 @@
     "format:write": "biome format --write .",
     "codegen:schema": "tsx node_modules/oosync/src/codegen-schema.ts --schema=cubefsrs --lenient",
     "codegen:schema:check": "tsx node_modules/oosync/src/codegen-schema.ts --schema=cubefsrs --lenient --check",
-    "refresh-to-catalog-seed": "bash supabase/scripts/refresh_catalog_seed.sh"
+    "refresh-to-catalog-seed": "bash supabase/scripts/refresh_catalog_seed.sh",
+    "link:rhizome": "yalc link @rhizome/core",
+    "unlink:rhizome": "yalc remove @rhizome/core && pnpm install"  
   },
   "dependencies": {
-    "@rhizome/core": "file:.yalc/@rhizome/core",
+    "@rhizome/core": "git+https://github.com/sboagy/rhizome.git#main",
     "@solidjs/router": "^0.14.0",
     "@supabase/supabase-js": "^2.99.1",
     "@types/web-bluetooth": "^0.0.21",
