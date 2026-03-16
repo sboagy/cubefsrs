@@ -38,9 +38,14 @@ export const browserSqliteClient = createBrowserSqliteClient({
 		outboxBackupKeyPrefix: "cubefsrs-outbox-backup",
 		lastSyncTimestampKeyPrefix: "CF_LAST_SYNC_TIMESTAMP",
 	},
-	databaseVersion: 1,
+	databaseVersion: 2,
 	schemaVersion: "1.0.0",
-	migrationFiles: ["/drizzle/migrations/sqlite/0000_sticky_riptide.sql"],
+	migrationFiles: [
+		"/drizzle/migrations/sqlite/0000_sticky_riptide.sql",
+		// v2: partial unique indexes on catalog tables so global rows (user_id IS NULL)
+		// are correctly deduplicated in SQLite (NULL != NULL in regular UNIQUE indexes).
+		"/drizzle/migrations/sqlite/0001_fix_catalog_null_unique.sql",
+	],
 	forceResetQueryParams: [
 		{ key: "reset", value: "true" },
 		{ key: "migrate", value: "uuid" },

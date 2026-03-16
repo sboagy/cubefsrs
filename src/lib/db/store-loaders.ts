@@ -26,7 +26,7 @@ export async function loadAlgsFromDb(
 	userId: string,
 ): Promise<void> {
 	// --- Load categories (global + user-owned) ---
-	const dbCats = await db
+	const dbCatsRaw = await db
 		.select()
 		.from(schema.algCategory)
 		.where(
@@ -38,7 +38,7 @@ export async function loadAlgsFromDb(
 		.orderBy(schema.algCategory.sortOrder);
 
 	// --- Load subsets ---
-	const dbSubsets = await db
+	const dbSubsetsRaw = await db
 		.select()
 		.from(schema.algSubset)
 		.where(
@@ -47,11 +47,37 @@ export async function loadAlgsFromDb(
 		.orderBy(schema.algSubset.sortOrder);
 
 	// --- Load cases ---
-	const dbCases = await db
+	const dbCasesRaw = await db
 		.select()
 		.from(schema.algCase)
 		.where(or(isNull(schema.algCase.userId), eq(schema.algCase.userId, userId)))
 		.orderBy(schema.algCase.sortOrder);
+
+	// --- Defensive deduplication by (slug, effectiveUserId) ---
+	// SQLite's UNIQUE(slug, user_id) does NOT prevent duplicate global rows when
+	// user_id IS NULL (SQLite treats NULLs as distinct in unique indexes).
+	// The schema was fixed in migration 0001 with partial unique indexes, but we
+	// deduplicate here as a safety net for any data that pre-dates the fix.
+	function dedup<T extends { slug: string; userId: string | null }>(
+		rows: T[],
+	): T[] {
+		const seen = new Set<string>();
+		return rows.filter((r) => {
+			const key = `${r.slug}\0${r.userId ?? ""}`;
+			if (seen.has(key)) return false;
+			seen.add(key);
+			return true;
+		});
+	}
+	const dbCats = dedup(dbCatsRaw);
+	const validCatIds = new Set(dbCats.map((c) => c.id));
+	const dbSubsets = dedup(
+		dbSubsetsRaw.filter((s) => validCatIds.has(s.categoryId)),
+	);
+	const validSubsetIds = new Set(dbSubsets.map((s) => s.id));
+	const dbCases = dedup(
+		dbCasesRaw.filter((c) => validSubsetIds.has(c.subsetId)),
+	);
 
 	// --- Load user annotations ---
 	const dbAnnotations = await db
