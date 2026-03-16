@@ -15,7 +15,6 @@ import {
 	setCategory,
 	setOptions,
 	toggleCase,
-	updateFromDefaults,
 } from "@/stores/algs";
 import { ensureCard, refreshQueue } from "@/stores/fsrs";
 import { clearTimes, practice, setOrderMode, visit } from "@/stores/practice";
@@ -189,13 +188,6 @@ export default function AlgLibraryView() {
 					</label>
 					<button type="button" class="btn" onClick={() => resetToDefaults()}>
 						Reset
-					</button>
-					<button
-						type="button"
-						class="btn"
-						onClick={() => updateFromDefaults()}
-					>
-						Update
 					</button>
 				</div>
 			</div>

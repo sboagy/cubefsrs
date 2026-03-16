@@ -331,16 +331,58 @@ export function deleteCase(id: string) {
 }
 
 export function resetToDefaults() {
-	// TODO: In Supabase mode, "reset to defaults" should trigger a forceFullSyncDown
-	// from the auth provider to reload the global catalog from Supabase.
-	// For now this is a no-op — the catalog is always synced from Supabase.
-	console.warn("[algs] resetToDefaults: no-op in Supabase mode");
-}
+	// Clear all user overrides from SQLite: annotations, selections, and user-owned
+	// cases. The global catalog (user_id = NULL) is left untouched. Categories and
+	// subsets from the global catalog remain in the in-memory store.
+	void (async () => {
+		const db = getDb();
+		const userId = getCurrentUserId();
+		if (!db || !userId) return;
 
-export function updateFromDefaults() {
-	// TODO: In Supabase mode, "update from defaults" should trigger a syncDown
-	// to merge any new catalog entries. For now this is a no-op.
-	console.warn("[algs] updateFromDefaults: no-op in Supabase mode");
+		// Query user-owned cases first so we can sync the in-memory store after the
+		// deletes (we need to know which case names to remove from the catalog).
+		const userCases = await db
+			.select({ id: schema.algCase.id, name: schema.algCase.name })
+			.from(schema.algCase)
+			.where(eq(schema.algCase.userId, userId));
+		const userCaseNames = new Set(userCases.map((c) => c.name));
+
+		// Delete user data from SQLite.
+		await db
+			.delete(schema.userAlgAnnotation)
+			.where(eq(schema.userAlgAnnotation.userId, userId));
+		await db
+			.delete(schema.userAlgSelection)
+			.where(eq(schema.userAlgSelection.userId, userId));
+		await db
+			.delete(schema.algCase)
+			.where(eq(schema.algCase.userId, userId));
+
+		// Mirror the deletes in memory: strip annotations from all cases,
+		// remove user-owned case entries, and clear the selection list.
+		const updatedCases: Record<string, AlgCase> = {};
+		for (const [key, c] of Object.entries(algs.cases)) {
+			if (userCaseNames.has(key)) continue; // drop user-created cases
+			updatedCases[key] = {
+				...c,
+				recognition: undefined,
+				mnemonic: undefined,
+				notes: undefined,
+			};
+		}
+		const updatedCatalog: AlgCatalog = {
+			categories: algs.catalog.categories.map((cat: AlgCategory) => ({
+				...cat,
+				subsets: cat.subsets.map((s) => ({
+					...s,
+					caseIds: s.caseIds.filter((id) => !userCaseNames.has(id)),
+				})),
+			})),
+		};
+		setAlgs("cases", updatedCases);
+		setAlgs("catalog", updatedCatalog);
+		setAlgs("selectedIds", []);
+	})();
 }
 
 export function importFromJson(json: string) {
