@@ -1,4 +1,0 @@
-{
-  "types": "../../dist/lib/cmd-ts-too/batteries/url.d.ts",
-  "module": "../../dist/lib/cmd-ts-too/batteries/url.js"
-}

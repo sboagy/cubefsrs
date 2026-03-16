@@ -1,8 +1,10 @@
 import { createStore } from "solid-js/store";
 import { safeGet, safeSet } from "@/services/persistence/localStorage";
 
+export type ThemeMode = "light" | "dark" | "system";
+
 type SettingsState = {
-	dark: boolean;
+	theme: ThemeMode;
 	backview: boolean;
 	showCaseName: boolean;
 	gyroAnimation: boolean;
@@ -14,7 +16,7 @@ type SettingsState = {
 };
 
 const [settings, setSettings] = createStore<SettingsState>({
-	dark: safeGet("cubedex.ui.dark", false),
+	theme: safeGet<ThemeMode>("cubedex.ui.theme", "system"),
 	backview: safeGet("cubedex.ui.backview", false),
 	showCaseName: safeGet("cubedex.ui.showCaseName", true),
 	gyroAnimation: safeGet("cubedex.ui.gyroAnimation", false),
@@ -27,14 +29,9 @@ const [settings, setSettings] = createStore<SettingsState>({
 
 export { settings };
 
-export function toggleDark() {
-	const next = !settings.dark;
-	setSettings("dark", next);
-	safeSet("cubedex.ui.dark", next);
-}
-export function setDark(v: boolean) {
-	setSettings("dark", v);
-	safeSet("cubedex.ui.dark", v);
+export function setTheme(v: ThemeMode) {
+	setSettings("theme", v);
+	safeSet("cubedex.ui.theme", v);
 }
 export function setBackview(v: boolean) {
 	setSettings("backview", v);

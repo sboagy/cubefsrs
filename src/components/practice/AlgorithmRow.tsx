@@ -36,6 +36,7 @@ export default function AlgorithmRow(props: Props) {
         {props.children ?? "Algorithm"}
         <div class="ml-6 flex items-center gap-3">
           <button
+            type="button"
             class="w-10 h-10 flex items-center justify-center rounded-full bg-gray-200 dark:bg-gray-800 hover:bg-gray-300 dark:hover:bg-gray-700 transition"
             onClick={props.onCycleVisibility}
             aria-label="Change visibility"
@@ -46,6 +47,7 @@ export default function AlgorithmRow(props: Props) {
             </span>
           </button>
           <button
+            type="button"
             class="w-10 h-10 flex items-center justify-center rounded-full bg-gray-200 dark:bg-gray-800 hover:bg-gray-300 dark:hover:bg-gray-700 transition"
             onClick={props.onEdit}
             aria-label="Edit Algorithm"

@@ -10,6 +10,8 @@ lerna-debug.log*
 node_modules
 src/node_modules
 dist
+.yalc/
+yalc.lock
 dist-ssr
 *.local
 
@@ -183,3 +185,5 @@ practice_queues_recovered.csv
 
 # VS Code workspace files that may contain local paths
 .vscode/*.code-workspace
+
+_notes

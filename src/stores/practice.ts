@@ -1,5 +1,8 @@
+import { and, eq } from "drizzle-orm";
 import { createStore } from "solid-js/store";
-import { safeGet, safeSet } from "@/services/persistence/localStorage";
+import { getDb, schema } from "@/lib/db/client-sqlite";
+import { getCurrentUserId } from "@/lib/db/db-state";
+import { algs } from "@/stores/algs";
 
 export type AlgorithmVisibility = "full" | "obscured" | "hidden";
 
@@ -25,40 +28,45 @@ const [practice, setPractice] = createStore<PracticeState>({
 	currentId: null,
 	running: false,
 	startAt: null,
-	timesById: safeGet<Record<string, TimeEntry[]>>("cubedex.practice.times.v1", {}),
+	timesById: {},
 	visibility: "full",
 	history: [],
 	historyIndex: -1,
-	orderMode: (() => {
-		const v = localStorage.getItem("cubedex.practice.order");
-		return v === "sequential" || v === "random" || v === "fsrs" ? v : "fsrs";
-	})() as PracticeState["orderMode"],
+	orderMode: "fsrs",
 });
 
-export { practice };
+export { practice, setPractice };
 
 export function currentTimes(): TimeEntry[] {
 	const id = practice.currentId;
-	return id ? practice.timesById[id] ?? [] : [];
+	return id ? (practice.timesById[id] ?? []) : [];
 }
 export function averageMs(): number {
 	const arr = currentTimes();
-	return arr.length ? Math.round(arr.reduce((a, t) => a + t.ms, 0) / arr.length) : 0;
+	return arr.length
+		? Math.round(arr.reduce((a, t) => a + t.ms, 0) / arr.length)
+		: 0;
 }
 export function bestMs(): number {
 	const arr = currentTimes();
 	return arr.length ? Math.min(...arr.map((t) => t.ms)) : 0;
 }
 
-export function saveTimes() {
-	safeSet("cubedex.practice.times.v1", practice.timesById);
-}
-
 export function setOrderMode(mode: PracticeState["orderMode"]) {
 	setPractice("orderMode", mode);
-	try {
-		localStorage.setItem("cubedex.practice.order", mode);
-	} catch {}
+	// Persist order mode to SQLite user_settings
+	void (async () => {
+		const db = getDb();
+		const userId = getCurrentUserId();
+		if (!db || !userId) return;
+		await db
+			.insert(schema.userSettings)
+			.values({ userId, orderMode: mode })
+			.onConflictDoUpdate({
+				target: schema.userSettings.userId,
+				set: { orderMode: mode, updatedAt: new Date().toISOString() },
+			});
+	})();
 }
 
 function setCurrent(id: string | null) {
@@ -68,7 +76,10 @@ function setCurrent(id: string | null) {
 }
 
 export function visit(id: string) {
-	if (practice.historyIndex >= 0 && practice.history[practice.historyIndex] === id) {
+	if (
+		practice.historyIndex >= 0 &&
+		practice.history[practice.historyIndex] === id
+	) {
 		setCurrent(id);
 		return;
 	}
@@ -87,7 +98,10 @@ export function goPrev() {
 }
 
 export function goNext() {
-	if (practice.historyIndex >= 0 && practice.historyIndex < practice.history.length - 1) {
+	if (
+		practice.historyIndex >= 0 &&
+		practice.historyIndex < practice.history.length - 1
+	) {
 		setPractice("historyIndex", practice.historyIndex + 1);
 		setCurrent(practice.history[practice.historyIndex] ?? null);
 	}
@@ -109,7 +123,21 @@ export function stopPractice() {
 		if (arr.length > 100) arr.length = 100;
 		const newTimesById = { ...practice.timesById, [practice.currentId]: arr };
 		setPractice("timesById", newTimesById);
-		saveTimes();
+		// Persist time entry to SQLite
+		const caseId = practice.currentId;
+		const entryMs = ms;
+		void (async () => {
+			const db = getDb();
+			const userId = getCurrentUserId();
+			const caseDbId = algs.cases[caseId]?.dbId;
+			if (!db || !userId || !caseDbId) return;
+			await db.insert(schema.practiceTimeEntry).values({
+				userId,
+				caseId: caseDbId,
+				ms: entryMs,
+				reviewedAt: new Date().toISOString(),
+			});
+		})();
 	}
 	setPractice("running", false);
 	setPractice("startAt", null);
@@ -141,5 +169,26 @@ export function clearTimes(id?: string) {
 	} else {
 		setPractice("timesById", {});
 	}
-	saveTimes();
+	// Delete time entries from SQLite
+	void (async () => {
+		const db = getDb();
+		const userId = getCurrentUserId();
+		if (!db || !userId) return;
+		if (id) {
+			const caseDbId = algs.cases[id]?.dbId;
+			if (!caseDbId) return;
+			await db
+				.delete(schema.practiceTimeEntry)
+				.where(
+					and(
+						eq(schema.practiceTimeEntry.userId, userId),
+						eq(schema.practiceTimeEntry.caseId, caseDbId),
+					),
+				);
+		} else {
+			await db
+				.delete(schema.practiceTimeEntry)
+				.where(eq(schema.practiceTimeEntry.userId, userId));
+		}
+	})();
 }

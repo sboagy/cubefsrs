@@ -1,0 +1,135 @@
+{
+	"outputs": {
+		"sqliteSchemaFile": "drizzle/schema-sqlite.generated.ts",
+		"sqliteSchemaWrapperFile": "drizzle/schema-sqlite.ts",
+		"sqliteClientFile": "src/lib/db/client-sqlite.ts",
+		"tableMetaFile": "shared/generated/sync/table-meta.generated.ts",
+		"appTableMetaFile": "shared/table-meta.ts",
+		"syncRuntimeConfigFile": "src/lib/sync/runtime-config.ts",
+		"workerPgSchemaFile": "worker/src/generated/schema-postgres.generated.ts",
+		"workerConfigFile": "worker/src/generated/worker-config.generated.ts",
+		"workerEntrypointFile": "worker/src/index.ts"
+	},
+	"browserSqlite": {
+		"hooksModule": "src/lib/db/oosync-browser-sqlite-hooks.ts",
+		"hooksExportName": "browserSqliteHooks",
+		"indexedDbName": "cubefsrs-storage",
+		"indexedDbStore": "databases",
+		"dbKeyPrefix": "cubefsrs-db",
+		"dbVersionKeyPrefix": "cubefsrs-db-version",
+		"outboxBackupKeyPrefix": "cubefsrs-outbox-backup",
+		"lastSyncTimestampKeyPrefix": "CF_LAST_SYNC_TIMESTAMP",
+		"schemaVersion": "1.0.0",
+		"databaseVersion": 1,
+		"migrationDirectory": "drizzle/migrations/sqlite",
+		"migrationFiles": ["/drizzle/migrations/sqlite/0000_sticky_riptide.sql"],
+		"forceResetQueryParams": [
+			{ "key": "reset", "value": "true" },
+			{ "key": "migrate", "value": "uuid" }
+		]
+	},
+	"tableMeta": {
+		"excludeTables": [],
+		"changeCategoryByTable": {
+			"alg_category": "catalog",
+			"alg_subset": "catalog",
+			"alg_case": "catalog",
+			"user_alg_annotation": "user",
+			"user_alg_selection": "user",
+			"fsrs_card_state": "practice",
+			"practice_time_entry": "practice",
+			"user_settings": "user"
+		},
+		"normalizeDatetimeByTable": {
+			"alg_case": ["created_at", "updated_at"],
+			"user_alg_annotation": ["updated_at"],
+			"fsrs_card_state": ["updated_at"],
+			"practice_time_entry": ["reviewed_at"],
+			"user_settings": ["updated_at"]
+		}
+	},
+	"worker": {
+		"config": {
+			"pull": {
+				"tableRules": {
+					"alg_category": {
+						"kind": "compound",
+						"operator": "or",
+						"rules": [
+							{ "kind": "publicOnly", "column": "user_id" },
+							{ "kind": "eqUserId", "column": "user_id" }
+						]
+					},
+					"alg_subset": {
+						"kind": "compound",
+						"operator": "or",
+						"rules": [
+							{ "kind": "publicOnly", "column": "user_id" },
+							{ "kind": "eqUserId", "column": "user_id" }
+						]
+					},
+					"alg_case": {
+						"kind": "compound",
+						"operator": "or",
+						"rules": [
+							{ "kind": "publicOnly", "column": "user_id" },
+							{ "kind": "eqUserId", "column": "user_id" }
+						]
+					},
+					"user_alg_annotation": {
+						"kind": "eqUserId",
+						"column": "user_id"
+					},
+					"user_alg_selection": {
+						"kind": "eqUserId",
+						"column": "user_id"
+					},
+					"fsrs_card_state": {
+						"kind": "eqUserId",
+						"column": "user_id"
+					},
+					"practice_time_entry": {
+						"kind": "eqUserId",
+						"column": "user_id"
+					},
+					"user_settings": {
+						"kind": "eqUserId",
+						"column": "user_id"
+					}
+				}
+			},
+			"push": {
+				"tableRules": {
+					"alg_category": {
+						"bindAuthUserIdProps": ["user_id"]
+					},
+					"alg_subset": {
+						"bindAuthUserIdProps": ["user_id"]
+					},
+					"alg_case": {
+						"bindAuthUserIdProps": ["user_id"]
+					},
+					"user_alg_annotation": {
+						"bindAuthUserIdProps": ["user_id"]
+					},
+					"user_alg_selection": {
+						"bindAuthUserIdProps": ["user_id"]
+					},
+					"fsrs_card_state": {
+						"bindAuthUserIdProps": ["user_id"]
+					},
+					"practice_time_entry": {
+						"bindAuthUserIdProps": ["user_id"],
+						"denyDelete": true
+					},
+					"user_settings": {
+						"bindAuthUserIdProps": ["user_id"],
+						"upsert": {
+							"omitSetProps": ["user_id"]
+						}
+					}
+				}
+			}
+		}
+	}
+}
