@@ -13,7 +13,8 @@
     "format": "biome format .",
     "format:write": "biome format --write .",
     "codegen:schema": "tsx node_modules/oosync/src/codegen-schema.ts --schema=cubefsrs --lenient",
-    "codegen:schema:check": "tsx node_modules/oosync/src/codegen-schema.ts --schema=cubefsrs --lenient --check"
+    "codegen:schema:check": "tsx node_modules/oosync/src/codegen-schema.ts --schema=cubefsrs --lenient --check",
+    "refresh-to-catalog-seed": "bash supabase/scripts/refresh_catalog_seed.sh"
   },
   "dependencies": {
     "@rhizome/core": "file:.yalc/@rhizome/core",
