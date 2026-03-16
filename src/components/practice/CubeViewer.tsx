@@ -73,6 +73,10 @@ export default function CubeViewer(props: Props) {
 				(player as unknown as Record<string, unknown>).cameraLatitude = -45;
 				(player as unknown as Record<string, unknown>).cameraLongitude = 0;
 			} else {
+				// Connected: restore the normal camera constraints before switching back
+				// to the configured viewer. Otherwise the disconnected top-down limit can
+				// survive the transition and leave the cube flattened until remount.
+				(player as unknown as Record<string, unknown>).cameraLatitudeLimit = 90;
 				// Connected: use the configured visualization with standard angle
 				player.visualization = settings.visualization as never;
 				(player as unknown as Record<string, unknown>).cameraLatitude = 30;
