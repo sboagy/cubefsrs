@@ -605,7 +605,7 @@ export function ingestMove(deviceMove: string) {
 		const refine = ["x", "x'", "x2", "y", "y'", "y2", "z", "z'", "z2"];
 		const basePatternRef = _progressPatternRaw || _currentPattern;
 		for (const r of refine) {
-			const combo = (tracking.eventTransform + " " + r).trim();
+			const combo = (`${tracking.eventTransform} ${r}`).trim();
 			let test = applyRotationToMove(deviceMove, combo);
 			if (orientationMode === "yellow-up") test = mapTokenByZ2(test);
 			test = norm(test);
@@ -812,7 +812,7 @@ function recomputeDisplay() {
 		if (tracking.badAlg.length) {
 			let fix = "";
 			for (let i = 0; i < tracking.badAlg.length; i++)
-				fix += getInverseMove(tracking.badAlg[tracking.badAlg.length - 1 - i]) + " ";
+				fix += `${getInverseMove(tracking.badAlg[tracking.badAlg.length - 1 - i])} `;
 			const simplified = Alg.fromString(fix)
 				.experimentalSimplify({ cancel: true, puzzleLoader: cube3x3x3 })
 				.toString()

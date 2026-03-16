@@ -10,6 +10,7 @@ IFS=$'\n\t'
 
 main() {
     local src_root="../../cubefsrs"
+
     local dest_root
     dest_root="$(pwd)"
 
