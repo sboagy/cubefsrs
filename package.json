@@ -15,8 +15,8 @@
     "codegen:schema": "tsx node_modules/oosync/src/codegen-schema.ts --schema=cubefsrs --lenient",
     "codegen:schema:check": "tsx node_modules/oosync/src/codegen-schema.ts --schema=cubefsrs --lenient --check",
     "refresh-to-catalog-seed": "bash supabase/scripts/refresh_catalog_seed.sh",
-    "link:rhizome": "yalc link @rhizome/core",
-    "unlink:rhizome": "yalc remove @rhizome/core && pnpm install"  
+    "link:local": "yalc link @rhizome/core oosync && cd worker && yalc link oosync",
+    "unlink:local": "yalc remove --all && pnpm install && cd worker && yalc remove --all && pnpm install"  
   },
   "dependencies": {
     "@rhizome/core": "git+https://github.com/sboagy/rhizome.git#main",
