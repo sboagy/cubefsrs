@@ -10,7 +10,7 @@ import type { SqliteDatabase } from "@/lib/db/client-sqlite";
 import { schema } from "@/lib/db/client-sqlite";
 import type { FSRSState, FsrsUserParams } from "@/services/scheduler/fsrs";
 import { getFsrsConfig } from "@/services/scheduler/fsrs";
-import { buildCatalogFromDefaults, setAlgs } from "@/stores/algs";
+import { setAlgs } from "@/stores/algs";
 import { setFsrs } from "@/stores/fsrs";
 import { setPractice } from "@/stores/practice";
 import type { AlgCase, AlgCategory } from "@/types/algs";
@@ -111,10 +111,12 @@ export async function loadAlgsFromDb(
 	});
 
 	if (categories.length === 0) {
-		// DB has no catalog — fall back to defaults in memory
-		const { catalog, cases: defCases } = buildCatalogFromDefaults();
-		setAlgs("catalog", catalog);
-		setAlgs("cases", defCases);
+		// DB has no catalog yet (sync hasn't completed) — leave stores empty.
+		// The first forceFullSyncDown in onSignIn will populate SQLite and
+		// a follow-up loadAlgsFromDb call will fill the stores.
+		console.warn(
+			"[store-loaders] loadAlgsFromDb: catalog is empty; sync may not have completed yet",
+		);
 		return;
 	}
 

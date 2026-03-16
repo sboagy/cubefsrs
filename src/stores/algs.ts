@@ -1,6 +1,5 @@
 import { and, eq } from "drizzle-orm";
 import { createStore } from "solid-js/store";
-import defaults from "@/data/defaultAlgs.json";
 import { getDb, schema } from "@/lib/db/client-sqlite";
 import { getCurrentUserId } from "@/lib/db/db-state";
 import type { AlgCase, AlgCatalog, AlgCategory } from "@/types/algs";
@@ -47,68 +46,6 @@ export function currentSubsets() {
 }
 export function isSelected(id: string) {
 	return algs.selectedIds.includes(id);
-}
-
-export function buildCatalogFromDefaults(): {
-	catalog: AlgCatalog;
-	cases: Record<string, AlgCase>;
-} {
-	type DefaultsAlg = {
-		name?: string;
-		algorithm?: string;
-		recognition?: string;
-		mnemonic?: string;
-		notes?: string;
-	};
-	type DefaultsSubset = { subset?: string; algorithms?: DefaultsAlg[] };
-	type DefaultsRoot = Record<string, DefaultsSubset[]>;
-	const data = defaults as unknown as DefaultsRoot;
-	const categories: AlgCategory[] = [];
-	const cases: Record<string, AlgCase> = {};
-	for (const catName of Object.keys(data)) {
-		const subsetsSrc: DefaultsSubset[] = Array.isArray(data[catName])
-			? data[catName]
-			: [];
-		const subsets: { name: string; caseIds: string[] }[] = [];
-		for (const subset of subsetsSrc) {
-			const sName: string = subset?.subset ?? "";
-			if (!sName) continue;
-			const algsArr: DefaultsAlg[] = Array.isArray(subset?.algorithms)
-				? (subset.algorithms as DefaultsAlg[])
-				: [];
-			const caseIds: string[] = [];
-			for (const a of algsArr) {
-				const id: string = String(a?.name ?? "").trim();
-				if (!id) continue;
-				caseIds.push(id);
-				if (!cases[id]) {
-					cases[id] = {
-						id,
-						name: id,
-						alg: typeof a?.algorithm === "string" ? a.algorithm : "",
-						recognition:
-							typeof a?.recognition === "string" ? a.recognition : undefined,
-						mnemonic: typeof a?.mnemonic === "string" ? a.mnemonic : undefined,
-						notes: typeof a?.notes === "string" ? a.notes : undefined,
-					} as AlgCase;
-				}
-			}
-			subsets.push({ name: sName, caseIds });
-		}
-		categories.push({ name: catName, subsets });
-	}
-	return { catalog: { categories }, cases };
-}
-
-// Pre-populate with defaults so the UI renders before sign-in; DB data
-// loaded in onSignIn will overwrite these values.
-export function initAlgs() {
-	const { catalog, cases } = buildCatalogFromDefaults();
-	setAlgs("catalog", catalog);
-	setAlgs("cases", cases);
-	if (!algs.currentCategory && catalog.categories.length > 0) {
-		setAlgs("currentCategory", catalog.categories[0]?.name ?? "");
-	}
 }
 
 export function setCategory(name: string) {
@@ -394,51 +331,16 @@ export function deleteCase(id: string) {
 }
 
 export function resetToDefaults() {
-	const { catalog, cases } = buildCatalogFromDefaults();
-	setAlgs("catalog", catalog);
-	setAlgs("cases", cases);
-	if (!algs.currentCategory && catalog.categories.length) {
-		setAlgs("currentCategory", catalog.categories[0]?.name ?? "");
-	}
+	// TODO: In Supabase mode, "reset to defaults" should trigger a forceFullSyncDown
+	// from the auth provider to reload the global catalog from Supabase.
+	// For now this is a no-op — the catalog is always synced from Supabase.
+	console.warn("[algs] resetToDefaults: no-op in Supabase mode");
 }
 
 export function updateFromDefaults() {
-	const base = algs.catalog;
-	const { catalog: defCatalog, cases: defCases } = buildCatalogFromDefaults();
-	const byName = new Map<string, AlgCategory>();
-	for (const c of base.categories)
-		byName.set(c.name, { ...c, subsets: [...c.subsets] });
-	for (const c of defCatalog.categories) {
-		const existing = byName.get(c.name);
-		if (!existing) {
-			byName.set(c.name, { name: c.name, subsets: [...c.subsets] });
-		} else {
-			const subsetNames = new Set(existing.subsets.map((s) => s.name));
-			for (const s of c.subsets) {
-				if (!subsetNames.has(s.name)) existing.subsets.push({ ...s });
-				else {
-					const target = existing.subsets.find((x) => x.name === s.name);
-					if (target) {
-						const existingIds = new Set(target.caseIds);
-						for (const id of s.caseIds)
-							if (!existingIds.has(id)) target.caseIds.push(id);
-					}
-				}
-			}
-		}
-	}
-	const newCatalog = { categories: Array.from(byName.values()) };
-	const minCases: Record<string, AlgCase> = { ...defCases };
-	for (const cat of newCatalog.categories) {
-		for (const subset of cat.subsets) {
-			for (const id of subset.caseIds) {
-				if (!(id in minCases))
-					minCases[id] = algs.cases[id] ?? { id, name: id, alg: "" };
-			}
-		}
-	}
-	setAlgs("catalog", newCatalog);
-	setAlgs("cases", minCases);
+	// TODO: In Supabase mode, "update from defaults" should trigger a syncDown
+	// to merge any new catalog entries. For now this is a no-op.
+	console.warn("[algs] updateFromDefaults: no-op in Supabase mode");
 }
 
 export function importFromJson(json: string) {

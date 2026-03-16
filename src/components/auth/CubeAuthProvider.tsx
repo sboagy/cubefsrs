@@ -1,9 +1,6 @@
 import { AuthProvider, type LocalDatabase } from "@rhizome/core";
 import { createSignal, type ParentComponent } from "solid-js";
-import {
-	needsCatalogSeed,
-	seedCatalogFromDefaults,
-} from "@/lib/db/catalog-seeder";
+import { needsCatalogSeed } from "@/lib/db/catalog-seeder";
 import { closeDb, getDb, initializeDb } from "@/lib/db/client-sqlite";
 import { setCurrentUserId, setDbReady } from "@/lib/db/db-state";
 import { migrateLocalStorageToSqlite } from "@/lib/db/localStorage-migration";
@@ -13,11 +10,11 @@ import {
 	loadPracticeFromDb,
 	loadUserSettingsFromDb,
 } from "@/lib/db/store-loaders";
-import { type SyncService, startSyncWorker } from "@/lib/sync";
+import { SyncService } from "@/lib/sync";
 import { getSupabaseClient } from "@/services/supabase";
 import { algs } from "@/stores/algs";
 
-// Holds the stop function returned by startSyncWorker; cleared on sign-out.
+// Holds the stop function for the current sync session; cleared on sign-out.
 let stopSync: (() => void) | null = null;
 // The SyncService instance for the current session; used by forceSyncDown/forceSyncUp.
 let syncService: SyncService | null = null;
@@ -100,59 +97,60 @@ const CubeAuthProvider: ParentComponent = (props) => {
 					const db = getDb();
 					if (!db) return;
 
-					// 2. Seed global catalog if this is a first-run empty DB
-					let nameToDbId = new Map<string, string>();
+					// 2. Create sync service (don't start auto-sync yet) so we can use it
+					//    to seed SQLite on first run before loading stores.
+					const svc = new SyncService(db, {
+						supabase: client,
+						userId: user.id,
+						syncIntervalMs: 5000,
+						realtimeEnabled: false,
+						onSyncComplete: (result) => {
+							if (result.errors.length > 0) {
+								console.warn(
+									"[CubeAuthProvider] sync errors:",
+									result.errors,
+								);
+							}
+							// Update timestamp signals so DbStatusDropdown reflects latest state
+							if (syncService) {
+								const ts = syncService.getLastSyncDownTimestamp();
+								if (ts) setLastSyncTimestamp(ts);
+								setLastSyncMode(syncService.getLastSyncMode());
+							}
+						},
+					});
+					// Store references early so onSyncComplete can read timestamps.
+					syncService = svc;
+					stopSync = () => svc.stopAutoSync();
+
+					// 3. On first-run empty DB, pull the global catalog from Supabase into
+					//    SQLite via the worker before loading the stores.  Data always flows
+					//    Supabase → worker → SQLite → stores (never from a bundled JSON file).
 					if (await needsCatalogSeed(db)) {
-						nameToDbId = await seedCatalogFromDefaults(db);
+						await svc.forceFullSyncDown();
 					}
 
-					// 3. Load data from SQLite into the Solid stores
+					// 4. Load data from SQLite into the Solid stores
 					await loadAlgsFromDb(db, user.id);
 					await loadFsrsFromDb(db, user.id);
 					await loadPracticeFromDb(db, user.id);
 					await loadUserSettingsFromDb(db, user.id);
 
-					// 4. If nameToDbId is empty (catalog was already seeded), build it from the
-					//    in-memory cases that loadAlgsFromDb just populated.
-					if (nameToDbId.size === 0) {
-						for (const [name, c] of Object.entries(algs.cases)) {
-							if (c.dbId) nameToDbId.set(name, c.dbId);
-						}
+					// 5. Build nameToDbId from the in-memory cases loadAlgsFromDb just populated.
+					const nameToDbId = new Map<string, string>();
+					for (const [name, c] of Object.entries(algs.cases)) {
+						if (c.dbId) nameToDbId.set(name, c.dbId);
 					}
 
-					// 5. One-time migration from legacy localStorage keys → SQLite
+					// 6. One-time migration from legacy localStorage keys → SQLite
 					await migrateLocalStorageToSqlite(db, user.id, nameToDbId);
 
 					setDbReady(true);
 
-					// 6. Start background sync between local SQLite and Supabase
-					const supabase = getSupabaseClient();
-					if (supabase) {
-						const { stop, service } = startSyncWorker(db, {
-							supabase,
-							userId: user.id,
-							syncIntervalMs: 5000,
-							realtimeEnabled: false,
-							onSyncComplete: (result) => {
-								if (result.errors.length > 0) {
-									console.warn(
-										"[CubeAuthProvider] sync errors:",
-										result.errors,
-									);
-								}
-								// Update timestamp signals so DbStatusDropdown reflects latest state
-								if (syncService) {
-									const ts = syncService.getLastSyncDownTimestamp();
-									if (ts) setLastSyncTimestamp(ts);
-									setLastSyncMode(syncService.getLastSyncMode());
-								}
-							},
-						});
-						stopSync = stop;
-						syncService = service;
-						// Cast: SqliteDatabase satisfies LocalDatabase's all<T>() interface.
-						setLocalDb(db as unknown as LocalDatabase);
-					}
+					// 7. Start periodic background sync (initial syncDown fires internally).
+					svc.startAutoSync();
+					// Cast: SqliteDatabase satisfies LocalDatabase's all<T>() interface.
+					setLocalDb(db as unknown as LocalDatabase);
 				} catch (err) {
 					console.error("[CubeAuthProvider] onSignIn DB init failed:", err);
 				}

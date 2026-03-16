@@ -7,7 +7,6 @@ import LoginView from "@/views/LoginView";
 import App from "./App";
 import "./styles/tailwind.css";
 import { DatabaseBrowser } from "@rhizome/core";
-import { initAlgs } from "@/stores/algs";
 import { initFsrs } from "@/stores/fsrs";
 
 const PracticeView = lazy(() => import("@/views/PracticeView"));
@@ -17,7 +16,6 @@ const HelpView = lazy(() => import("@/views/HelpView"));
 const AlgLibraryView = lazy(() => import("@/views/AlgLibraryView"));
 const BuildView = lazy(() => import("@/views/BuildView"));
 
-initAlgs();
 initFsrs();
 
 const root = document.getElementById("app");
