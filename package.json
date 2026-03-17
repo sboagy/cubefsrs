@@ -5,22 +5,22 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "vite build",
-    "preview": "vite preview",
+    "dev": "FORCE_COLOR=1 op run --env-file=\".env.local.template\" -- vite",
+    "build": "FORCE_COLOR=1 op run --env-file=\".env.local.template\" -- vite build",
+    "preview": "FORCE_COLOR=1 op run --env-file=\".env.local.template\" -- vite preview",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "lint": "biome lint .",
     "format": "biome format .",
     "format:write": "biome format --write .",
-    "codegen:schema": "tsx node_modules/oosync/src/codegen-schema.ts --schema=cubefsrs --lenient",
+    "codegen:schema": "op run --env-file=\".env.local.template\" -- tsx node_modules/oosync/src/codegen-schema.ts --schema=cubefsrs --lenient",
     "codegen:schema:check": "tsx node_modules/oosync/src/codegen-schema.ts --schema=cubefsrs --lenient --check",
-    "refresh-to-catalog-seed": "bash supabase/scripts/refresh_catalog_seed.sh",
+    "refresh-to-catalog-seed": "op run --env-file=\".env.local.template\" -- bash supabase/scripts/refresh_catalog_seed.sh",
     "link:local": "yalc link @rhizome/core oosync && cd worker && yalc link oosync",
-    "unlink:local": "yalc remove --all && pnpm install && cd worker && yalc remove --all && pnpm install"  
+    "unlink:local": "yalc remove --all && npm install && cd worker && yalc remove --all && npm install"
   },
   "dependencies": {
     "@rhizome/core": "git+https://github.com/sboagy/rhizome.git#main",
-    "@solidjs/router": "^0.14.0",
+    "@solidjs/router": "^0.15.0",
     "@supabase/supabase-js": "^2.99.1",
     "@types/web-bluetooth": "^0.0.21",
     "chart.js": "^4.4.1",
@@ -41,13 +41,13 @@
     "@types/sql.js": "^1.4.9",
     "autoprefixer": "^10.4.20",
     "drizzle-kit": "^0.31.9",
-    "oosync": "file:.yalc/oosync",
     "postcss": "^8.4.47",
     "tailwindcss": "^3.4.13",
     "tsx": "^4.21.0",
     "typescript": "^5.5.3",
     "vite": "^5.4.8",
     "vite-plugin-solid": "^2.10.2",
-    "vite-plugin-static-copy": "^3.3.0"
+    "vite-plugin-static-copy": "^3.3.0",
+    "oosync": "git+https://github.com/sboagy/oosync.git#main"
   }
 }
