@@ -11,7 +11,7 @@ import { schema } from "@/lib/db/client-sqlite";
 import type { FSRSState, FsrsUserParams } from "@/services/scheduler/fsrs";
 import { getFsrsConfig } from "@/services/scheduler/fsrs";
 import { setAlgs } from "@/stores/algs";
-import { setFsrs } from "@/stores/fsrs";
+import { refreshQueue, setFsrs } from "@/stores/fsrs";
 import { setPractice } from "@/stores/practice";
 import type { AlgCase, AlgCategory } from "@/types/algs";
 
@@ -203,6 +203,7 @@ export async function loadFsrsFromDb(
 
 	setFsrs("params", params);
 	setFsrs("states", states);
+	refreshQueue();
 }
 
 /**
