@@ -266,7 +266,11 @@ export default function OptionsView() {
 					>
 						Apply
 					</button>
-					<button type="button" class="px-3 py-2 rounded border" onClick={doClears}>
+					<button
+						type="button"
+						class="px-3 py-2 rounded border"
+						onClick={doClears}
+					>
 						Clear Reviews
 					</button>
 				</div>
@@ -287,7 +291,11 @@ export default function OptionsView() {
 								? "Connecting…"
 								: "Connect"}
 					</button>
-					<button type="button" class="px-3 py-2 rounded border" onClick={resetGyro}>
+					<button
+						type="button"
+						class="px-3 py-2 rounded border"
+						onClick={resetGyro}
+					>
 						Reset Gyro
 					</button>
 				</div>

@@ -137,9 +137,7 @@ export async function clearCubefsrsClientStorage(
 			if (deleteAllIndexedDbs && typeof indexedDB.databases === "function") {
 				try {
 					const dbs = await indexedDB.databases();
-					const names = dbs
-						.map((d) => d.name)
-						.filter((n): n is string => !!n);
+					const names = dbs.map((d) => d.name).filter((n): n is string => !!n);
 					await Promise.all(names.map((n) => deleteDbWithRetry(n)));
 				} catch (err) {
 					console.warn(

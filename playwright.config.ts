@@ -69,14 +69,14 @@ export default defineConfig({
 				...devices["Pixel 5"],
 				// storageState: "e2e/.auth/alice.json",
 				launchOptions: {
-				args: [
-					// "--remote-debugging-port=9222",
-					// Set X (Horizontal) and Y (Vertical) coordinates
-					// Example: X=1950, Y=50 (Pushes the window onto the second monitor)
-					// "--window-position=-1950,50",
-					// OPTIONAL: Also set a specific window size
-					// "--window-size=1280,1024",
-				],
+					args: [
+						// "--remote-debugging-port=9222",
+						// Set X (Horizontal) and Y (Vertical) coordinates
+						// Example: X=1950, Y=50 (Pushes the window onto the second monitor)
+						// "--window-position=-1950,50",
+						// OPTIONAL: Also set a specific window size
+						// "--window-size=1280,1024",
+					],
 				},
 			},
 			dependencies: ["setup"],

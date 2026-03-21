@@ -47,7 +47,9 @@ vi.mock("cubing/puzzles", () => ({
 }));
 
 vi.mock("cubing/search", () => ({
-	experimentalSolve3x3x3IgnoringCenters: vi.fn().mockResolvedValue({ toString: () => "" }),
+	experimentalSolve3x3x3IgnoringCenters: vi
+		.fn()
+		.mockResolvedValue({ toString: () => "" }),
 }));
 
 // ── Import after mocks ────────────────────────────────────────────────────────
@@ -86,13 +88,17 @@ function solvedPattern(): InstanceType<typeof MockKPattern> {
 
 describe("patternToFacelets — solved cube", () => {
 	it("returns a 54-character string", () => {
-		const facelets = patternToFacelets(solvedPattern() as unknown as Parameters<typeof patternToFacelets>[0]);
+		const facelets = patternToFacelets(
+			solvedPattern() as unknown as Parameters<typeof patternToFacelets>[0],
+		);
 		expect(typeof facelets).toBe("string");
 		expect(facelets).toHaveLength(54);
 	});
 
 	it("contains only valid face letters (U,R,F,D,L,B)", () => {
-		const facelets = patternToFacelets(solvedPattern() as unknown as Parameters<typeof patternToFacelets>[0]);
+		const facelets = patternToFacelets(
+			solvedPattern() as unknown as Parameters<typeof patternToFacelets>[0],
+		);
 		expect(facelets).toMatch(/^[URFDLB]+$/);
 	});
 });

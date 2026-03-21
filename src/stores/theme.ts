@@ -8,8 +8,7 @@ export function initTheme() {
 	// When theme is "system", mirror the OS media query.
 	createEffect(() => {
 		const isDark =
-			settings.theme === "dark" ||
-			(settings.theme === "system" && mq.matches);
+			settings.theme === "dark" || (settings.theme === "system" && mq.matches);
 		document.documentElement.classList.toggle("dark", isDark);
 	});
 
@@ -18,8 +17,7 @@ export function initTheme() {
 		// Triggering the effect is enough — it reads mq.matches reactively.
 		// Force a re-run by touching the DOM class directly.
 		const isDark =
-			settings.theme === "dark" ||
-			(settings.theme === "system" && mq.matches);
+			settings.theme === "dark" || (settings.theme === "system" && mq.matches);
 		document.documentElement.classList.toggle("dark", isDark);
 	};
 	mq.addEventListener("change", onSystemChange);

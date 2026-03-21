@@ -52,29 +52,28 @@ export async function getCfTestApi(page: Page): Promise<CfTestApi> {
 			page.evaluate(() => window.__cfTestApi?.pauseAutoSync()),
 		resumeAutoSync: () =>
 			page.evaluate(() => window.__cfTestApi?.resumeAutoSync()),
-		forceSyncUp: () =>
-			page.evaluate(() => window.__cfTestApi?.forceSyncUp()),
+		forceSyncUp: () => page.evaluate(() => window.__cfTestApi?.forceSyncUp()),
 		waitForSyncIdle: (timeoutMs?: number) =>
 			page.evaluate(
 				(t) => window.__cfTestApi?.waitForSyncIdle(t),
 				timeoutMs,
 			) as Promise<void>,
 		getSyncOutboxCount: () =>
-			page.evaluate(
-				() => window.__cfTestApi?.getSyncOutboxCount(),
+			page.evaluate(() =>
+				window.__cfTestApi?.getSyncOutboxCount(),
 			) as Promise<number>,
 		getPracticeQueueCount: () =>
-			page.evaluate(
-				() => window.__cfTestApi?.getPracticeQueueCount(),
+			page.evaluate(() =>
+				window.__cfTestApi?.getPracticeQueueCount(),
 			) as Promise<number>,
 		getCatalogCaseCount: () =>
-			page.evaluate(
-				() => window.__cfTestApi?.getCatalogCaseCount(),
+			page.evaluate(() =>
+				window.__cfTestApi?.getCatalogCaseCount(),
 			) as Promise<number>,
 		getSelectedCaseIds: () =>
-			page.evaluate(
-				() => window.__cfTestApi?.getSelectedCaseIds(),
-			) as Promise<string[]>,
+			page.evaluate(() => window.__cfTestApi?.getSelectedCaseIds()) as Promise<
+				string[]
+			>,
 	} as CfTestApi;
 }
 
@@ -130,7 +129,8 @@ export async function setupDeterministicTestParallel(
 		// cannot map case UUIDs back to names yet and the practice queue stays empty.
 		await page.waitForFunction(
 			async () => {
-				const api = (window as unknown as { __cfTestApi?: CfTestApi }).__cfTestApi;
+				const api = (window as unknown as { __cfTestApi?: CfTestApi })
+					.__cfTestApi;
 				if (!api) return false;
 				return (await api.getCatalogCaseCount()) > 0;
 			},
@@ -144,17 +144,13 @@ export async function setupDeterministicTestParallel(
 	}
 	if (opts.selectedCaseIds && opts.selectedCaseIds.length > 0) {
 		await page.evaluate(
-			(caseIds) =>
-				window.__cfTestApi?.seedAlgSelection({ caseIds }),
+			(caseIds) => window.__cfTestApi?.seedAlgSelection({ caseIds }),
 			opts.selectedCaseIds,
 		);
 	}
 
 	for (const card of opts.fsrsCards ?? []) {
-		await page.evaluate(
-			(c) => window.__cfTestApi?.seedFsrsCardState(c),
-			card,
-		);
+		await page.evaluate((c) => window.__cfTestApi?.seedFsrsCardState(c), card);
 	}
 }
 
@@ -222,7 +218,8 @@ export async function setupForPracticeTestsParallel(
 	if (cards.length > 0) {
 		await page.waitForFunction(
 			async (expectedCount) => {
-				const api = (window as unknown as { __cfTestApi?: CfTestApi }).__cfTestApi;
+				const api = (window as unknown as { __cfTestApi?: CfTestApi })
+					.__cfTestApi;
 				if (!api) return false;
 				return (await api.getPracticeQueueCount()) >= expectedCount;
 			},
@@ -239,10 +236,7 @@ export async function seedAlgSelectionLocally(
 	page: Page,
 	opts: { caseIds: string[] },
 ): Promise<void> {
-	await page.evaluate(
-		(o) => window.__cfTestApi?.seedAlgSelection(o),
-		opts,
-	);
+	await page.evaluate((o) => window.__cfTestApi?.seedAlgSelection(o), opts);
 }
 
 /**
@@ -257,10 +251,7 @@ export async function seedFsrsCardLocally(
 		state?: number;
 	},
 ): Promise<void> {
-	await page.evaluate(
-		(o) => window.__cfTestApi?.seedFsrsCardState(o),
-		opts,
-	);
+	await page.evaluate((o) => window.__cfTestApi?.seedFsrsCardState(o), opts);
 }
 
 /**

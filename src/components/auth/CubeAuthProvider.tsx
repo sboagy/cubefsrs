@@ -107,10 +107,7 @@ const CubeAuthProvider: ParentComponent = (props) => {
 						realtimeEnabled: false,
 						onSyncComplete: (result) => {
 							if (result.errors.length > 0) {
-								console.warn(
-									"[CubeAuthProvider] sync errors:",
-									result.errors,
-								);
+								console.warn("[CubeAuthProvider] sync errors:", result.errors);
 							}
 							// Update timestamp signals so DbStatusDropdown reflects latest state
 							if (syncService) {

@@ -39,7 +39,8 @@ describe("mapTokenByZ2 — lowercase wide moves", () => {
 describe("mapTokenByZ2 — Rw-style wide moves", () => {
 	it("maps Rw → Lw", () => expect(mapTokenByZ2("Rw")).toBe("Lw"));
 	it("maps Uw' → Dw'", () => expect(mapTokenByZ2("Uw'")).toBe("Dw'"));
-	it("maps Fw2 → Fw2 (unchanged)", () => expect(mapTokenByZ2("Fw2")).toBe("Fw2"));
+	it("maps Fw2 → Fw2 (unchanged)", () =>
+		expect(mapTokenByZ2("Fw2")).toBe("Fw2"));
 });
 
 describe("mapTokenByZ2 — slice moves", () => {

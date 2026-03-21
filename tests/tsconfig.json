@@ -11,10 +11,5 @@
 		"moduleResolution": "bundler",
 		"module": "preserve"
 	},
-	"include": [
-		"**/*.ts",
-		"**/*.tsx",
-		"../src/**/*.ts",
-		"../src/**/*.tsx"
-	]
+	"include": ["**/*.ts", "**/*.tsx", "../src/**/*.ts", "../src/**/*.tsx"]
 }

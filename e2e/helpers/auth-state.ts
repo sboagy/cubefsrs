@@ -59,9 +59,7 @@ export function readStoredAuthStateMetadata(
 						? session.expires_at * 1000
 						: null;
 				const storedUserEmail =
-					typeof session.user?.email === "string"
-						? session.user.email
-						: null;
+					typeof session.user?.email === "string" ? session.user.email : null;
 
 				return {
 					hasIndexedDbSnapshot,

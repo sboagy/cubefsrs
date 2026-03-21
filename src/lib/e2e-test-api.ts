@@ -330,9 +330,7 @@ export function attachCfTestApi(controls: CfTestApiControls): void {
 		},
 
 		async getCatalogCaseCount() {
-			const result = await db
-				.select({ cnt: count() })
-				.from(schema.algCase);
+			const result = await db.select({ cnt: count() }).from(schema.algCase);
 			return result[0]?.cnt ?? 0;
 		},
 
