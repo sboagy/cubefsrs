@@ -11,10 +11,11 @@
  *   of the time but explicitly signals test intent)
  */
 
-import { existsSync, readFileSync, statSync } from "node:fs";
+import { existsSync } from "node:fs";
 import type { Page } from "@playwright/test";
 import { test as base } from "@playwright/test";
 import log from "loglevel";
+import { readStoredAuthStateMetadata } from "./auth-state";
 import {
 	clearCubefsrsClientStorage,
 	gotoCfOrigin,
@@ -40,8 +41,7 @@ function isExpectedPlaywrightTeardownError(error: unknown): boolean {
 		msg.includes("Execution context was destroyed")
 	);
 }
-
-const AUTH_EXPIRY_MINUTES = 10_080; // 7 days — matches jwt_expiry = 604800s
+const AUTH_EXPIRY_SAFETY_WINDOW_MS = 5 * 60 * 1000;
 
 /**
  * Check whether an auth state file exists and is still fresh.
@@ -53,28 +53,20 @@ function isAuthFresh(authFile: string, userEmail: string): boolean {
 	}
 
 	try {
-		const authData = JSON.parse(readFileSync(authFile, "utf-8"));
+		const metadata = readStoredAuthStateMetadata(authFile);
+		if (!metadata) {
+			console.log(`⚠️  Invalid auth file: ${authFile}`);
+			return false;
+		}
 
-		// Verify the file belongs to the expected user.
-		const origins = authData.origins || [];
-		const hasUserData = origins.some((origin: Record<string, unknown>) => {
-			const localStorage = (origin.localStorage as unknown[]) || [];
-			return (localStorage as Array<{ value?: string }>).some((item) =>
-				item.value?.includes(userEmail),
-			);
-		});
+		const hasUserData = metadata.storedUserEmail === userEmail;
 
 		if (!hasUserData) {
 			console.log(`⚠️  Auth file is not for ${userEmail}: ${authFile}`);
 			return false;
 		}
 
-		const hasIndexedDbSnapshot = origins.some((origin: Record<string, unknown>) => {
-			const indexedDb = origin.indexedDB as unknown[] | undefined;
-			return (indexedDb?.length ?? 0) > 0;
-		});
-
-		if (!hasIndexedDbSnapshot) {
+		if (!metadata.hasIndexedDbSnapshot) {
 			console.log(
 				`⚠️  Auth file has no IndexedDB snapshot: ${authFile} (regenerate with npm run db:local:reset)`,
 			);
@@ -86,12 +78,18 @@ function isAuthFresh(authFile: string, userEmail: string): boolean {
 			return true;
 		}
 
-		const fileStats = statSync(authFile);
-		const fileAgeMinutes = (Date.now() - fileStats.mtimeMs) / 1000 / 60;
-
-		if (fileAgeMinutes >= AUTH_EXPIRY_MINUTES) {
+		if (metadata.expiresAtMs == null) {
 			console.log(
-				`⚠️  Auth file is stale (${Math.round(fileAgeMinutes)} min old): ${authFile}`,
+				`⚠️  Auth file has no session expiry metadata: ${authFile}`,
+			);
+			return false;
+		}
+
+		const msUntilExpiry = metadata.expiresAtMs - Date.now();
+
+		if (msUntilExpiry <= AUTH_EXPIRY_SAFETY_WINDOW_MS) {
+			console.log(
+				`⚠️  Auth file token is expired or near expiry (${Math.round(msUntilExpiry / 1000 / 60)} min remaining): ${authFile}`,
 			);
 			return false;
 		}

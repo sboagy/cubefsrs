@@ -151,8 +151,10 @@ enabled = true
 # `supabase db reset` locally from this directory (e.g. for isolated testing).
 site_url = "http://localhost:5174"
 additional_redirect_urls = ["http://localhost:5174", "http://127.0.0.1:5174", "http://localhost:4174"]
-# How long tokens are valid for, in seconds. Defaults to 3600 (1 hour), maximum 604,800 (1 week).
-jwt_expiry = 3600
+# Mirror the shared rhizome local-dev auth config for isolated resets from this
+# repo. The E2E harness validates saved auth files against each token's
+# recorded expires_at value rather than assuming a fixed lifetime.
+jwt_expiry = 315360000
 # JWT issuer URL. If not set, defaults to the local API URL (http://127.0.0.1:<port>/auth/v1).
 # jwt_issuer = ""
 # Path to JWT signing key. DO NOT commit your signing keys file to git.

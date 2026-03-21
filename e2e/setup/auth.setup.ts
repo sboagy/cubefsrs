@@ -17,12 +17,13 @@
  *     and `VITE_SUPABASE_ANON_KEY` must be set (via .env.local or CI secrets).
  */
 
-import { existsSync, mkdirSync, statSync } from "node:fs";
+import { existsSync, mkdirSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { expect, test as setup } from "@playwright/test";
 import { createClient } from "@supabase/supabase-js";
 import { config } from "dotenv";
+import { readStoredAuthStateMetadata } from "../helpers/auth-state";
 import { TEST_USERS } from "../helpers/test-users";
 import { BASE_URL } from "../test-config";
 
@@ -45,10 +46,7 @@ const CUBEFSRS_USER_TABLES = [
 	"sync_push_queue",
 ] as const;
 
-/**
- * JWT expiry matches `jwt_expiry` in supabase/config.toml (604800s = 7 days).
- */
-const AUTH_EXPIRY_MINUTES = 10080;
+const AUTH_EXPIRY_SAFETY_WINDOW_MS = 5 * 60 * 1000;
 
 const ALICE_TEST_PASSWORD =
 	process.env.ALICE_TEST_PASSWORD ||
@@ -65,12 +63,10 @@ function ensureAuthDir(): void {
 
 function isAuthFileFresh(filePath: string): boolean {
 	if (!existsSync(filePath)) return false;
-	try {
-		const ageMinutes = (Date.now() - statSync(filePath).mtimeMs) / 1000 / 60;
-		return ageMinutes < AUTH_EXPIRY_MINUTES;
-	} catch {
-		return false;
-	}
+	const metadata = readStoredAuthStateMetadata(filePath);
+	if (!metadata?.hasIndexedDbSnapshot) return false;
+	if (metadata.expiresAtMs == null) return false;
+	return metadata.expiresAtMs - Date.now() > AUTH_EXPIRY_SAFETY_WINDOW_MS;
 }
 
 /**
@@ -139,11 +135,12 @@ setup("authenticate all test users", async ({ browser }) => {
 
 		// Skip users whose auth state is still fresh (unless in CI or RESET_DB)
 		if (!shouldReset && !isCI && isAuthFileFresh(authFile)) {
-			const ageMinutes = Math.round(
-				(Date.now() - statSync(authFile).mtimeMs) / 1000 / 60,
-			);
+			const metadata = readStoredAuthStateMetadata(authFile);
+			const remainingMinutes = metadata?.expiresAtMs
+				? Math.round((metadata.expiresAtMs - Date.now()) / 1000 / 60)
+				: 0;
 			console.log(
-				`✅ [${testUser.name}] Using cached auth state (${ageMinutes} min old)`,
+				`✅ [${testUser.name}] Using cached auth state (${remainingMinutes} min until expiry)`,
 			);
 			continue;
 		}
@@ -208,7 +205,7 @@ setup("authenticate all test users", async ({ browser }) => {
 			await expect(page).not.toHaveURL(/\/login/, { timeout: 2_000 });
 
 			// Persist auth state, including IndexedDB so isAuthFresh() accepts it
-			await context.storageState({ path: authFile, include: ["indexedDB"] });
+			await context.storageState({ path: authFile, indexedDB: true });
 
 			console.log(`✅ [${testUser.name}] Auth state saved to ${authFile}`);
 		} finally {
