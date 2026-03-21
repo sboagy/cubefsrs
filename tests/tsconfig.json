@@ -1,0 +1,20 @@
+/**
+ * tests/tsconfig.json
+ *
+ * TypeScript config for Vitest unit tests.
+ * Extends root tsconfig and adds testing-library types.
+ */
+{
+	"extends": "../tsconfig.json",
+	"compilerOptions": {
+		"types": ["vitest/globals"],
+		"moduleResolution": "bundler",
+		"module": "preserve"
+	},
+	"include": [
+		"**/*.ts",
+		"**/*.tsx",
+		"../src/**/*.ts",
+		"../src/**/*.tsx"
+	]
+}

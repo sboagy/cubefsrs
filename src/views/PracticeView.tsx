@@ -27,6 +27,7 @@ import {
 } from "@/stores/fsrs";
 import { orientationMode } from "@/stores/orientation";
 import {
+	clearCurrent,
 	currentTimes,
 	cycleVisibility,
 	goNext,
@@ -197,6 +198,7 @@ export default function PracticeView() {
 		reviewCase(practice.currentId, rating);
 		const nextId = popNext();
 		if (nextId) visit(nextId);
+		else clearCurrent();
 	}
 
 	// Bridge device moves → tracking
@@ -221,6 +223,15 @@ export default function PracticeView() {
 		// after a move would reset tracking back to the first letter.
 		if (alg === untrack(() => tracking.rawAlg)) return;
 		setAlgorithm(alg);
+	});
+
+	createEffect(() => {
+		if (practice.orderMode !== "fsrs") return;
+		if (practice.currentId) return;
+		if (fsrs.queue.length === 0) return;
+
+		const nextId = popNext();
+		if (nextId) visit(nextId);
 	});
 
 	onMount(() => {
