@@ -207,8 +207,8 @@ setup("authenticate all test users", async ({ browser }) => {
 			// Verify we're on a non-login page (quick sanity check)
 			await expect(page).not.toHaveURL(/\/login/, { timeout: 2_000 });
 
-			// Persist auth state
-			await context.storageState({ path: authFile });
+			// Persist auth state, including IndexedDB so isAuthFresh() accepts it
+			await context.storageState({ path: authFile, include: ["indexedDB"] });
 
 			console.log(`✅ [${testUser.name}] Auth state saved to ${authFile}`);
 		} finally {
