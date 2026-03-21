@@ -15,11 +15,13 @@ import { BASE_URL } from "../test-config";
 
 /**
  * Navigate to the CubeFSRS origin without loading the SPA.
- * This unloads React/Solid so IndexedDB connections can be cleanly closed
- * before deletion.
+ * This unloads the SPA so IndexedDB connections can be cleanly closed before
+ * deletion.
  */
 export async function gotoCfOrigin(page: Page): Promise<void> {
-	await page.goto(`${BASE_URL}/`, { waitUntil: "domcontentloaded" });
+	await page.goto(`${BASE_URL}/e2e-origin.html`, {
+		waitUntil: "domcontentloaded",
+	});
 }
 
 /**
