@@ -39,11 +39,17 @@ const AUTH_DIR = resolve(__dirname, "../.auth");
  * Supabase tables owned by CubeFSRS that are safe to truncate on RESET_DB.
  * The global catalog tables (alg_category, alg_subset, alg_case) are NEVER
  * touched — they contain seed data that is not user-specific.
+ *
+ * NOTE: This list must only contain tables that actually exist in the
+ * `cubefsrs` schema and are user-scoped. It is used by RESET_DB to clear
+ * all synced user data without touching shared catalog tables.
  */
 const CUBEFSRS_USER_TABLES = [
 	"user_alg_selection",
 	"fsrs_card_state",
-	"sync_push_queue",
+	"practice_time_entry",
+	"user_alg_annotation",
+	"user_settings",
 ] as const;
 
 const AUTH_EXPIRY_SAFETY_WINDOW_MS = 5 * 60 * 1000;
