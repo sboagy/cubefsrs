@@ -4,7 +4,7 @@ set -euo pipefail
 SHOW_REPORT=false
 while getopts "r" opt; do
     case "$opt" in
-        r) SHOW_REPORT=false ;;
+        r) SHOW_REPORT=true ;;
         *) ;;
     esac
 done
