@@ -13,6 +13,11 @@
 import type { Page } from "@playwright/test";
 import { BASE_URL } from "../test-config";
 
+const LAST_SYNC_TIMESTAMP_PREFIXES = [
+	"CF_LAST_SYNC_TIMESTAMP",
+	"TT_LAST_SYNC_TIMESTAMP",
+] as const;
+
 /**
  * Navigate to the CubeFSRS origin without loading the SPA.
  * This unloads the SPA so IndexedDB connections can be cleanly closed before
@@ -63,7 +68,12 @@ export async function clearCubefsrsClientStorage(
 					const keysToRemove: string[] = [];
 					for (let i = 0; i < localStorage.length; i++) {
 						const key = localStorage.key(i);
-						if (key?.startsWith("CF_LAST_SYNC_TIMESTAMP")) {
+						if (
+							key &&
+							LAST_SYNC_TIMESTAMP_PREFIXES.some((prefix) =>
+								key.startsWith(prefix),
+							)
+						) {
 							keysToRemove.push(key);
 						}
 					}

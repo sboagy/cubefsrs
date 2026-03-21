@@ -196,9 +196,10 @@ setup("authenticate all test users", async ({ browser }) => {
 			// initial sync rather than an incremental one.
 			await page.evaluate(() => {
 				const keysToRemove: string[] = [];
+				const prefixes = ["CF_LAST_SYNC_TIMESTAMP", "TT_LAST_SYNC_TIMESTAMP"];
 				for (let i = 0; i < localStorage.length; i++) {
 					const key = localStorage.key(i);
-					if (key?.startsWith("CF_LAST_SYNC_TIMESTAMP")) {
+					if (key && prefixes.some((prefix) => key.startsWith(prefix))) {
 						keysToRemove.push(key);
 					}
 				}
