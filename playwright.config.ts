@@ -20,8 +20,8 @@ export default defineConfig({
 	fullyParallel: false,
 	forbidOnly: !!process.env.CI,
 	retries: process.env.CI ? 3 : 0,
-	// Per-test timeout: must exceed the 60s waitForFunction used by seeding
-	// tests (catalog sync on a fresh IndexedDB under parallel load).
+	// Per-test timeout: must exceed the 20s waitForFunction used by seeded
+	// setup in E2E helpers.
 	timeout: process.env.PWDEBUG ? 300_000 : 30_000,
 	// Up to 8 workers locally (one per test user); 2 in CI to limit resource usage
 	workers: process.env.CI ? 2 : 8,

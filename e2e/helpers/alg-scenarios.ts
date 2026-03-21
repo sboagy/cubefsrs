@@ -13,6 +13,8 @@ import type { Page } from "@playwright/test";
 import type { CfTestApi } from "../../src/lib/e2e-test-api";
 import type { TestUser } from "./test-users";
 
+const SEEDED_SETUP_TIMEOUT_MS = 20_000;
+
 /**
  * Retrieve `window.__cfTestApi` from the page.
  * Throws if the API is not attached (app not running in test mode, or user
@@ -112,15 +114,15 @@ export async function setupDeterministicTestParallel(
 	// Tests with no seeding (e.g. practice-001 empty state) must not be forced to
 	// wait for catalog sync — on a fresh IndexedDB under 8 parallel workers, that
 	// sync can take > 30 s and would unconditionally time out.
-	// For tests that DO seed, allow 60 s: catalog sync under parallel load is the
-	// bottleneck, and 60 s gives ~30 s headroom above the observed worst-case.
+	// For tests that DO seed, allow up to 20 s for auth/bootstrap and catalog
+	// availability under parallel load before failing fast.
 	const hasSeeding =
 		(opts.selectedCaseIds?.length ?? 0) > 0 ||
 		(opts.fsrsCards?.length ?? 0) > 0;
 	if (hasSeeding) {
 		await page.waitForFunction(
 			() => !!(window as unknown as { __cfTestApi?: unknown }).__cfTestApi,
-			{ timeout: 60_000 },
+			{ timeout: SEEDED_SETUP_TIMEOUT_MS },
 		);
 
 		// Seeded scenarios need the local catalog to exist before rehydrating
@@ -132,7 +134,7 @@ export async function setupDeterministicTestParallel(
 				if (!api) return false;
 				return (await api.getCatalogCaseCount()) > 0;
 			},
-			{ timeout: 60_000 },
+			{ timeout: SEEDED_SETUP_TIMEOUT_MS },
 		);
 	}
 
