@@ -21,30 +21,29 @@ import { BASE_URL } from "../test-config";
 test.use({ storageState: { cookies: [], origins: [] } });
 
 test.describe("offline-001: device-only mode", () => {
-	test(
-		"app remains functional in offline mode after anonymous sign-in",
-		async ({ page }) => {
-			const cfPage = new CubeFSRSPage(page);
+	test("app remains functional in offline mode after anonymous sign-in", async ({
+		page,
+	}) => {
+		const cfPage = new CubeFSRSPage(page);
 
-			// Navigate to root — should see login.
-			await page.goto(`${BASE_URL}/`);
-			await expect(cfPage.anonymousButton).toBeVisible({ timeout: 15_000 });
+		// Navigate to root — should see login.
+		await page.goto(`${BASE_URL}/`);
+		await expect(cfPage.anonymousButton).toBeVisible({ timeout: 15_000 });
 
-			// Sign in anonymously.
-			await cfPage.anonymousButton.click();
-			await expect(page).toHaveURL(/\/$/, { timeout: 15_000 });
-			await expect(cfPage.practiceLink).toBeVisible({ timeout: 10_000 });
+		// Sign in anonymously.
+		await cfPage.anonymousButton.click();
+		await expect(page).toHaveURL(/\/$/, { timeout: 15_000 });
+		await expect(cfPage.practiceLink).toBeVisible({ timeout: 10_000 });
 
-			// Simulate going offline.
-			await goOffline(page);
+		// Simulate going offline.
+		await goOffline(page);
 
-			// App should still render the practice view after going offline.
-			// The empty-state or an algorithm display should be visible (depends on
-			// whether any FSRS cards were seeded — anonymous users start with none).
-			await expect(cfPage.emptyStateMessage).toBeVisible({ timeout: 5_000 });
+		// App should still render the practice view after going offline.
+		// The empty-state or an algorithm display should be visible (depends on
+		// whether any FSRS cards were seeded — anonymous users start with none).
+		await expect(cfPage.emptyStateMessage).toBeVisible({ timeout: 5_000 });
 
-			// Restore network before test cleanup.
-			await goOnline(page);
-		},
-	);
+		// Restore network before test cleanup.
+		await goOnline(page);
+	});
 });

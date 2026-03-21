@@ -354,9 +354,7 @@ export function resetToDefaults() {
 		await db
 			.delete(schema.userAlgSelection)
 			.where(eq(schema.userAlgSelection.userId, userId));
-		await db
-			.delete(schema.algCase)
-			.where(eq(schema.algCase.userId, userId));
+		await db.delete(schema.algCase).where(eq(schema.algCase.userId, userId));
 
 		// Mirror the deletes in memory: strip annotations from all cases,
 		// remove user-owned case entries, and clear the selection list.

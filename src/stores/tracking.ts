@@ -37,7 +37,13 @@ interface SegmentPiece {
 	tokenIndex?: number;
 }
 
-type CanonicalKind = "single" | "double" | "slice" | "slice2" | "wide" | "wide2";
+type CanonicalKind =
+	| "single"
+	| "double"
+	| "slice"
+	| "slice2"
+	| "wide"
+	| "wide2";
 
 interface CanonicalToken {
 	raw: string;
@@ -142,7 +148,9 @@ class SeqPattern implements PatternLike {
 	isIdentical(o: unknown): boolean {
 		if (!o || typeof o !== "object") return false;
 		const other = o as { seq?: string[] };
-		return Array.isArray(other.seq) && other.seq.join(" ") === this.seq.join(" ");
+		return (
+			Array.isArray(other.seq) && other.seq.join(" ") === this.seq.join(" ")
+		);
 	}
 }
 
@@ -207,7 +215,8 @@ function ensureImmediateReady() {
 	const oriented: PatternLike[] = [];
 	let cur: PatternLike = start;
 	for (const tok of tracking.canonical) {
-		for (const comp of tok.components) cur = cur.applyMove(comp.replace(/[()]/g, ""));
+		for (const comp of tok.components)
+			cur = cur.applyMove(comp.replace(/[()]/g, ""));
 		raw.push(cur);
 		oriented.push(cur);
 	}
@@ -238,7 +247,8 @@ async function initPatterns() {
 		const oriented: PatternLike[] = [];
 		let cur: PatternLike = start;
 		for (const tok of tracking.canonical) {
-			for (const comp of tok.components) cur = cur.applyMove(comp.replace(/[()]/g, ""));
+			for (const comp of tok.components)
+				cur = cur.applyMove(comp.replace(/[()]/g, ""));
 			raw.push(cur);
 			oriented.push(cur);
 		}
@@ -266,7 +276,8 @@ function forceReady() {
 	const oriented: PatternLike[] = [];
 	let cur: PatternLike = start;
 	for (const tok of tracking.canonical) {
-		for (const comp of tok.components) cur = cur.applyMove(comp.replace(/[()]/g, ""));
+		for (const comp of tok.components)
+			cur = cur.applyMove(comp.replace(/[()]/g, ""));
 		raw.push(cur);
 		oriented.push(cur);
 	}
@@ -297,19 +308,24 @@ export function ingestMove(deviceMove: string) {
 	}
 	const next = tracking.userAlg[tracking.currentMoveIndex + 1];
 	if (!next) {
-		debug("skip:no-next", { idx: tracking.currentMoveIndex, total: tracking.userAlg.length });
+		debug("skip:no-next", {
+			idx: tracking.currentMoveIndex,
+			total: tracking.userAlg.length,
+		});
 		return;
 	}
 	const norm = (m: string) => m.replace(/[()]/g, "");
 	let logical = deviceMove.trim();
-	if (tracking.eventTransform) logical = applyRotationToMove(logical, tracking.eventTransform);
+	if (tracking.eventTransform)
+		logical = applyRotationToMove(logical, tracking.eventTransform);
 	const orientationMode = window._orientationMode || "white-up";
 	if (orientationMode === "yellow-up") logical = mapTokenByZ2(logical);
 	logical = norm(logical);
 
 	if (
 		tracking.badAlg.length > 0 &&
-		logical === norm(getInverseMove(tracking.badAlg[tracking.badAlg.length - 1]))
+		logical ===
+			norm(getInverseMove(tracking.badAlg[tracking.badAlg.length - 1]))
 	) {
 		setTracking("badAlg", tracking.badAlg.slice(0, -1));
 		recomputeDisplay();
@@ -326,7 +342,11 @@ export function ingestMove(deviceMove: string) {
 	const expectNorm = norm(next);
 
 	// Early rotation calibration
-	if (tracking.currentMoveIndex === -1 && !tracking.eventTransform && !_didEarlyCalibration) {
+	if (
+		tracking.currentMoveIndex === -1 &&
+		!tracking.eventTransform &&
+		!_didEarlyCalibration
+	) {
 		const expectedTok = tracking.canonical[0];
 		if (expectedTok) {
 			const acceptable = new Set<string>();
@@ -360,7 +380,11 @@ export function ingestMove(deviceMove: string) {
 	if (expectedIsSlice) {
 		const axis = expectNorm[0] as "M" | "E" | "S";
 		const axisFace = (mv: string) =>
-			axis === "M" ? /^[LR]/.test(mv[0]) : axis === "E" ? /^[UD]/.test(mv[0]) : /^[FB]/.test(mv[0]);
+			axis === "M"
+				? /^[LR]/.test(mv[0])
+				: axis === "E"
+					? /^[UD]/.test(mv[0])
+					: /^[FB]/.test(mv[0]);
 		const normalizedExpect = expectNorm.replace(/2'$/, "2");
 		const isDoubleSlice = normalizedExpect.endsWith("2");
 		if (!tracking.pendingSlice && axisFace(logical)) {
@@ -372,7 +396,10 @@ export function ingestMove(deviceMove: string) {
 		if (tracking.pendingSlice && tracking.pendingSlice.slice === axis) {
 			if (tracking.pendingSlice.halfComplete && !tracking.pendingSlice.first) {
 				if (axisFace(logical)) {
-					setTracking("pendingSlice", { ...tracking.pendingSlice, first: logical });
+					setTracking("pendingSlice", {
+						...tracking.pendingSlice,
+						first: logical,
+					});
 					recomputeDisplay();
 					return;
 				}
@@ -387,7 +414,10 @@ export function ingestMove(deviceMove: string) {
 						_progressPatternRaw = combined;
 						setTracking("badAlg", []);
 						setTracking("pendingSlice", null);
-						setTracking("acceptedDeviceMoves", [...tracking.acceptedDeviceMoves, deviceMove]);
+						setTracking("acceptedDeviceMoves", [
+							...tracking.acceptedDeviceMoves,
+							deviceMove,
+						]);
 						recomputeDisplay();
 						return;
 					}
@@ -397,16 +427,20 @@ export function ingestMove(deviceMove: string) {
 			const secondTok = logical.replace(/[()]/g, "");
 			const face1 = firstTok[0];
 			const face2 = secondTok[0];
-			const dir = (mv: string) => (mv.endsWith("'") ? -1 : mv.endsWith("2") ? 2 : 1);
+			const dir = (mv: string) =>
+				mv.endsWith("'") ? -1 : mv.endsWith("2") ? 2 : 1;
 			const d1 = dir(firstTok);
 			const d2 = dir(secondTok);
 			let inferred = false;
 			if (firstTok && Math.abs(d1) === 1 && Math.abs(d2) === 1 && d1 === -d2) {
 				const checkPair = (a: string, b: string, A: string, B: string) =>
 					(a === A && b === B) || (a === B && b === A);
-				if (axis === "M" && checkPair(face1 ?? "", face2 ?? "", "R", "L")) inferred = true;
-				else if (axis === "E" && checkPair(face1 ?? "", face2 ?? "", "U", "D")) inferred = true;
-				else if (axis === "S" && checkPair(face1 ?? "", face2 ?? "", "F", "B")) inferred = true;
+				if (axis === "M" && checkPair(face1 ?? "", face2 ?? "", "R", "L"))
+					inferred = true;
+				else if (axis === "E" && checkPair(face1 ?? "", face2 ?? "", "U", "D"))
+					inferred = true;
+				else if (axis === "S" && checkPair(face1 ?? "", face2 ?? "", "F", "B"))
+					inferred = true;
 			}
 			if (inferred) {
 				if (isDoubleSlice) {
@@ -419,22 +453,32 @@ export function ingestMove(deviceMove: string) {
 						recomputeDisplay();
 						return;
 					} else {
-						const applied = basePattern.applyMove(normalizedExpect) as PatternLike;
+						const applied = basePattern.applyMove(
+							normalizedExpect,
+						) as PatternLike;
 						setTracking("currentMoveIndex", nextIndex);
 						_progressPatternRaw = applied;
 						setTracking("badAlg", []);
 						setTracking("pendingSlice", null);
-						setTracking("acceptedDeviceMoves", [...tracking.acceptedDeviceMoves, deviceMove]);
+						setTracking("acceptedDeviceMoves", [
+							...tracking.acceptedDeviceMoves,
+							deviceMove,
+						]);
 						recomputeDisplay();
 						return;
 					}
 				} else {
-					const applied = basePattern.applyMove(normalizedExpect) as PatternLike;
+					const applied = basePattern.applyMove(
+						normalizedExpect,
+					) as PatternLike;
 					setTracking("currentMoveIndex", nextIndex);
 					_progressPatternRaw = applied;
 					setTracking("badAlg", []);
 					setTracking("pendingSlice", null);
-					setTracking("acceptedDeviceMoves", [...tracking.acceptedDeviceMoves, deviceMove]);
+					setTracking("acceptedDeviceMoves", [
+						...tracking.acceptedDeviceMoves,
+						deviceMove,
+					]);
 					recomputeDisplay();
 					return;
 				}
@@ -453,7 +497,8 @@ export function ingestMove(deviceMove: string) {
 		}
 		if (
 			tracking.pendingSlice &&
-			logical === getInverseMove(tracking.pendingSlice.first.replace(/[()]/g, ""))
+			logical ===
+				getInverseMove(tracking.pendingSlice.first.replace(/[()]/g, ""))
 		) {
 			setTracking("pendingSlice", null);
 			recomputeDisplay();
@@ -464,7 +509,10 @@ export function ingestMove(deviceMove: string) {
 	// Slice interruption fallback
 	if (tracking.pendingSlice) {
 		const first = tracking.pendingSlice.first;
-		if (logical !== first && logical !== getInverseMove(first.replace(/[()]/g, ""))) {
+		if (
+			logical !== first &&
+			logical !== getInverseMove(first.replace(/[()]/g, ""))
+		) {
 			const bad = [...tracking.badAlg];
 			if (bad[bad.length - 1] !== first) bad.push(first);
 			setTracking("badAlg", bad);
@@ -479,18 +527,28 @@ export function ingestMove(deviceMove: string) {
 		if (!tracking.pendingWide && expectedPattern && outer && sliceComp) {
 			if (logical === outer || logical === sliceComp) {
 				const partner = logical === outer ? sliceComp : outer;
-				const virt = basePattern.applyMove(logical).applyMove(partner) as PatternLike;
+				const virt = basePattern
+					.applyMove(logical)
+					.applyMove(partner) as PatternLike;
 				if (expectedPattern.isIdentical?.(virt)) {
 					setTracking("currentMoveIndex", nextIndex);
 					_progressPatternRaw = virt;
 					setTracking("badAlg", []);
-					setTracking("acceptedDeviceMoves", [...tracking.acceptedDeviceMoves, deviceMove]);
+					setTracking("acceptedDeviceMoves", [
+						...tracking.acceptedDeviceMoves,
+						deviceMove,
+					]);
 					recomputeDisplay();
 					return;
 				}
 			}
 		}
-		if (!tracking.pendingWide && outer && sliceComp && (logical === sliceComp || logical === outer)) {
+		if (
+			!tracking.pendingWide &&
+			outer &&
+			sliceComp &&
+			(logical === sliceComp || logical === outer)
+		) {
 			const sliceAxis: "M" | "E" | "S" = ctok.sliceAxis || "M";
 			setTracking("pendingWide", { slice: sliceAxis, first: logical });
 			recomputeDisplay();
@@ -500,13 +558,18 @@ export function ingestMove(deviceMove: string) {
 			const first = tracking.pendingWide.first;
 			const missing = first === sliceComp ? outer : sliceComp;
 			if (logical === missing) {
-				const combined = basePattern.applyMove(first).applyMove(logical) as PatternLike;
+				const combined = basePattern
+					.applyMove(first)
+					.applyMove(logical) as PatternLike;
 				if (expectedPattern?.isIdentical?.(combined)) {
 					setTracking("currentMoveIndex", nextIndex);
 					_progressPatternRaw = combined;
 					setTracking("badAlg", []);
 					setTracking("pendingWide", null);
-					setTracking("acceptedDeviceMoves", [...tracking.acceptedDeviceMoves, deviceMove]);
+					setTracking("acceptedDeviceMoves", [
+						...tracking.acceptedDeviceMoves,
+						deviceMove,
+					]);
 					recomputeDisplay();
 					return;
 				}
@@ -525,7 +588,8 @@ export function ingestMove(deviceMove: string) {
 		const face = expectNorm[0]?.toUpperCase() ?? "";
 		const wantsPrime = expectNorm.endsWith("'");
 		const quarterOk = (mv: string) =>
-			mv[0]?.toUpperCase() === face && (wantsPrime ? mv.endsWith("'") : !mv.endsWith("'"));
+			mv[0]?.toUpperCase() === face &&
+			(wantsPrime ? mv.endsWith("'") : !mv.endsWith("'"));
 		if (!tracking.pendingDouble && quarterOk(logical)) {
 			setTracking("pendingDouble", { face, first: logical, wantsPrime });
 			recomputeDisplay();
@@ -539,7 +603,10 @@ export function ingestMove(deviceMove: string) {
 				_progressPatternRaw = combined;
 				setTracking("badAlg", []);
 				setTracking("pendingDouble", null);
-				setTracking("acceptedDeviceMoves", [...tracking.acceptedDeviceMoves, deviceMove]);
+				setTracking("acceptedDeviceMoves", [
+					...tracking.acceptedDeviceMoves,
+					deviceMove,
+				]);
 				recomputeDisplay();
 				return;
 			}
@@ -550,7 +617,8 @@ export function ingestMove(deviceMove: string) {
 			setTracking("pendingDouble", null);
 		} else if (
 			tracking.pendingDouble &&
-			logical === getInverseMove(tracking.pendingDouble.first.replace(/[()]/g, ""))
+			logical ===
+				getInverseMove(tracking.pendingDouble.first.replace(/[()]/g, ""))
 		) {
 			setTracking("pendingDouble", null);
 			recomputeDisplay();
@@ -570,7 +638,10 @@ export function ingestMove(deviceMove: string) {
 		setTracking("currentMoveIndex", nextIndex);
 		_progressPatternRaw = applied;
 		setTracking("badAlg", []);
-		setTracking("acceptedDeviceMoves", [...tracking.acceptedDeviceMoves, deviceMove]);
+		setTracking("acceptedDeviceMoves", [
+			...tracking.acceptedDeviceMoves,
+			deviceMove,
+		]);
 		recomputeDisplay();
 		return;
 	}
@@ -589,7 +660,10 @@ export function ingestMove(deviceMove: string) {
 				setTracking("currentMoveIndex", nextIndex);
 				_progressPatternRaw = testApplied;
 				setTracking("badAlg", []);
-				setTracking("acceptedDeviceMoves", [...tracking.acceptedDeviceMoves, deviceMove]);
+				setTracking("acceptedDeviceMoves", [
+					...tracking.acceptedDeviceMoves,
+					deviceMove,
+				]);
 				recomputeDisplay();
 				return;
 			}
@@ -605,17 +679,22 @@ export function ingestMove(deviceMove: string) {
 		const refine = ["x", "x'", "x2", "y", "y'", "y2", "z", "z'", "z2"];
 		const basePatternRef = _progressPatternRaw || _currentPattern;
 		for (const r of refine) {
-			const combo = (`${tracking.eventTransform} ${r}`).trim();
+			const combo = `${tracking.eventTransform} ${r}`.trim();
 			let test = applyRotationToMove(deviceMove, combo);
 			if (orientationMode === "yellow-up") test = mapTokenByZ2(test);
 			test = norm(test);
-			const testApplied = (basePatternRef as PatternLike).applyMove(test) as PatternLike;
+			const testApplied = (basePatternRef as PatternLike).applyMove(
+				test,
+			) as PatternLike;
 			if (expectedPattern?.isIdentical?.(testApplied)) {
 				setTracking("eventTransform", combo);
 				setTracking("currentMoveIndex", nextIndex);
 				_progressPatternRaw = testApplied;
 				setTracking("badAlg", []);
-				setTracking("acceptedDeviceMoves", [...tracking.acceptedDeviceMoves, deviceMove]);
+				setTracking("acceptedDeviceMoves", [
+					...tracking.acceptedDeviceMoves,
+					deviceMove,
+				]);
 				recomputeDisplay();
 				return;
 			}
@@ -636,7 +715,11 @@ export function ingestMove(deviceMove: string) {
 	}
 
 	// Late wide rescue
-	if (ctok && (ctok.kind === "wide" || ctok.kind === "wide2") && expectedPattern) {
+	if (
+		ctok &&
+		(ctok.kind === "wide" || ctok.kind === "wide2") &&
+		expectedPattern
+	) {
 		const [outer, sliceComp] = ctok.components;
 		if (outer && sliceComp) {
 			for (const cand of rotationCandidates()) {
@@ -645,13 +728,18 @@ export function ingestMove(deviceMove: string) {
 				rotated = norm(rotated);
 				if (rotated === outer || rotated === sliceComp) {
 					const partner = rotated === outer ? sliceComp : outer;
-					const virt = basePattern.applyMove(rotated).applyMove(partner) as PatternLike;
+					const virt = basePattern
+						.applyMove(rotated)
+						.applyMove(partner) as PatternLike;
 					if (expectedPattern.isIdentical?.(virt)) {
 						setTracking("eventTransform", cand);
 						setTracking("currentMoveIndex", nextIndex);
 						_progressPatternRaw = virt;
 						setTracking("badAlg", []);
-						setTracking("acceptedDeviceMoves", [...tracking.acceptedDeviceMoves, deviceMove]);
+						setTracking("acceptedDeviceMoves", [
+							...tracking.acceptedDeviceMoves,
+							deviceMove,
+						]);
 						recomputeDisplay();
 						return;
 					}
@@ -674,7 +762,14 @@ function buildCanonical(raw: string): CanonicalToken {
 	if (wide.test(raw) && raw[0] === raw[0]?.toLowerCase()) {
 		const base = raw[0];
 		const suf = raw.slice(1);
-		const map: Record<string, { plain: [string, string]; prime: [string, string]; two: [string, string] }> = {
+		const map: Record<
+			string,
+			{
+				plain: [string, string];
+				prime: [string, string];
+				two: [string, string];
+			}
+		> = {
 			f: { plain: ["F", "S'"], prime: ["F'", "S"], two: ["F2", "S2"] },
 			r: { plain: ["R", "M'"], prime: ["R'", "M"], two: ["R2", "M2"] },
 			u: { plain: ["U", "E'"], prime: ["U'", "E"], two: ["U2", "E2"] },
@@ -692,17 +787,30 @@ function buildCanonical(raw: string): CanonicalToken {
 		const sliceMove = components[1] || "";
 		const axisChar = sliceMove[0];
 		const axis =
-			axisChar === "M" || axisChar === "E" || axisChar === "S" ? axisChar : undefined;
-		return { raw, kind: suf === "2" ? "wide2" : "wide", components, sliceAxis: axis };
+			axisChar === "M" || axisChar === "E" || axisChar === "S"
+				? axisChar
+				: undefined;
+		return {
+			raw,
+			kind: suf === "2" ? "wide2" : "wide",
+			components,
+			sliceAxis: axis,
+		};
 	}
 	if (slice.test(raw)) {
 		const axis = raw[0] as "M" | "E" | "S";
 		let suf = raw.slice(1);
 		if (suf === "2'") suf = "2";
 		const normRaw = axis + suf;
-		return { raw: normRaw, kind: suf === "2" ? "slice2" : "slice", components: [normRaw], sliceAxis: axis };
+		return {
+			raw: normRaw,
+			kind: suf === "2" ? "slice2" : "slice",
+			components: [normRaw],
+			sliceAxis: axis,
+		};
 	}
-	if (/^[URFDLB].*2$/.test(raw)) return { raw, kind: "double", components: [raw] };
+	if (/^[URFDLB].*2$/.test(raw))
+		return { raw, kind: "double", components: [raw] };
 	return { raw, kind: "single", components: [raw] };
 }
 
@@ -713,15 +821,24 @@ function parseTokens(raw: string) {
 	for (let i = 0; i < raw.length; i++) {
 		const ch = raw[i];
 		if (ch === "(") {
-			if (depth === 0 && buf.trim()) { out.push(buf.trim()); buf = ""; }
+			if (depth === 0 && buf.trim()) {
+				out.push(buf.trim());
+				buf = "";
+			}
 			depth++;
 			buf += ch;
 		} else if (ch === ")") {
 			buf += ch;
 			depth = Math.max(0, depth - 1);
-			if (depth === 0) { out.push(buf.trim()); buf = ""; }
+			if (depth === 0) {
+				out.push(buf.trim());
+				buf = "";
+			}
 		} else if (/\s/.test(ch) && depth === 0) {
-			if (buf.trim()) { out.push(buf.trim()); buf = ""; }
+			if (buf.trim()) {
+				out.push(buf.trim());
+				buf = "";
+			}
 		} else buf += ch;
 	}
 	if (buf.trim()) out.push(buf.trim());
@@ -737,7 +854,10 @@ function parseTokens(raw: string) {
 				else {
 					moveRegex.lastIndex = 0;
 					let m: RegExpExecArray | null = moveRegex.exec(inner);
-					while (m) { parts.push(m[1]); m = moveRegex.exec(inner); }
+					while (m) {
+						parts.push(m[1]);
+						m = moveRegex.exec(inner);
+					}
 				}
 				if (!parts.length) parts = [inner];
 				expanded.push(...parts);
@@ -759,7 +879,10 @@ function parseSegments(raw: string, expected: number) {
 		re.lastIndex = i;
 		const m = re.exec(raw);
 		if (m) {
-			if (buf) { segs.push({ text: buf }); buf = ""; }
+			if (buf) {
+				segs.push({ text: buf });
+				buf = "";
+			}
 			segs.push({ text: m[1], tokenIndex: ti++ });
 			i += m[1].length;
 			continue;
@@ -777,7 +900,9 @@ function rotationCandidates(): string[] {
 	const out = [""] as string[];
 	out.push(...singles);
 	for (const a of singles) for (const b of singles) out.push(`${a} ${b}`);
-	for (const a of ["x", "x2", "x'"]) for (const b of ["y", "y2", "y'"]) for (const c of ["z", "z2", "z'"]) out.push(`${a} ${b} ${c}`);
+	for (const a of ["x", "x2", "x'"])
+		for (const b of ["y", "y2", "y'"])
+			for (const c of ["z", "z2", "z'"]) out.push(`${a} ${b} ${c}`);
 	return out;
 }
 
@@ -790,11 +915,38 @@ function applyRotationToMove(move: string, t: string): string {
 		const low = f === f.toLowerCase();
 		let up = f.toUpperCase();
 		if (axis === "x")
-			up = up === "U" ? "B" : up === "B" ? "D" : up === "D" ? "F" : up === "F" ? "U" : up;
+			up =
+				up === "U"
+					? "B"
+					: up === "B"
+						? "D"
+						: up === "D"
+							? "F"
+							: up === "F"
+								? "U"
+								: up;
 		else if (axis === "y")
-			up = up === "F" ? "R" : up === "R" ? "B" : up === "B" ? "L" : up === "L" ? "F" : up;
+			up =
+				up === "F"
+					? "R"
+					: up === "R"
+						? "B"
+						: up === "B"
+							? "L"
+							: up === "L"
+								? "F"
+								: up;
 		else if (axis === "z")
-			up = up === "U" ? "R" : up === "R" ? "D" : up === "D" ? "L" : up === "L" ? "U" : up;
+			up =
+				up === "U"
+					? "R"
+					: up === "R"
+						? "D"
+						: up === "D"
+							? "L"
+							: up === "L"
+								? "U"
+								: up;
 		return low ? up.toLowerCase() : up;
 	};
 	const tokens = t.split(/\s+/).filter(Boolean);
@@ -817,7 +969,10 @@ function recomputeDisplay() {
 				.experimentalSimplify({ cancel: true, puzzleLoader: cube3x3x3 })
 				.toString()
 				.trim();
-			setTracking("simplifiedBadAlg", simplified ? simplified.split(/\s+/) : []);
+			setTracking(
+				"simplifiedBadAlg",
+				simplified ? simplified.split(/\s+/) : [],
+			);
 			if (tracking.simplifiedBadAlg.length === 0) setTracking("badAlg", []);
 		} else setTracking("simplifiedBadAlg", []);
 	} catch {
@@ -839,8 +994,13 @@ function recomputeDisplay() {
 		if (gid !== previousGroup) previousColor = "";
 
 		if (index <= tracking.currentMoveIndex) color = "green";
-		else if (index < 1 + tracking.currentMoveIndex + tracking.simplifiedBadAlg.length) color = "red";
-		if (index === tracking.currentMoveIndex + 1 && color !== "red") color = "white";
+		else if (
+			index <
+			1 + tracking.currentMoveIndex + tracking.simplifiedBadAlg.length
+		)
+			color = "red";
+		if (index === tracking.currentMoveIndex + 1 && color !== "red")
+			color = "white";
 
 		const clean = move.replace(/[()']/g, "").trim();
 		if (index === 0 && tracking.currentMoveIndex === -1 && randomAUF) {
@@ -875,7 +1035,10 @@ function recomputeDisplay() {
 
 		const inverseFirst = getInverseMove(tracking.simplifiedBadAlg[0]);
 		const currentClean = tracking.userAlg[index]?.replace(/[()']/g, "");
-		if (index === tracking.currentMoveIndex + 1 && tracking.simplifiedBadAlg.length === 1) {
+		if (
+			index === tracking.currentMoveIndex + 1 &&
+			tracking.simplifiedBadAlg.length === 1
+		) {
 			const opposite = getOppositeMove(inverseFirst?.replace(/[()'2]/g, ""));
 			const nextClean = tracking.userAlg[index + 1]?.replace(/[()']/g, "");
 			if (
@@ -889,7 +1052,8 @@ function recomputeDisplay() {
 			}
 		}
 		if (index === tracking.currentMoveIndex + 2 && isOpposite)
-			color = move.endsWith("2") && inverseFirst !== currentClean ? "blue" : "green";
+			color =
+				move.endsWith("2") && inverseFirst !== currentClean ? "blue" : "green";
 
 		if (
 			previousColor === "blue" ||

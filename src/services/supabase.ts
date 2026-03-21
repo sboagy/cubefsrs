@@ -23,7 +23,11 @@ export function getSupabaseClient() {
 	}
 
 	if (!_client) {
-		_client = createSupabaseClient({ url, anonKey, storageKey: "cubefsrs-auth" });
+		_client = createSupabaseClient({
+			url,
+			anonKey,
+			storageKey: "cubefsrs-auth",
+		});
 	}
 	return _client;
 }

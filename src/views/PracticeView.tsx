@@ -249,7 +249,6 @@ export default function PracticeView() {
 				if (id) visit(id);
 			}
 		}
-
 	});
 
 	onCleanup(() => {
@@ -295,7 +294,7 @@ export default function PracticeView() {
 				<div class="absolute right-0 top-1/2 -translate-y-1/2 flex items-center gap-4">
 					<Show when={practice.orderMode === "fsrs"}>
 						<button
-       type="button"
+							type="button"
 							class="w-10 h-10 flex items-center justify-center rounded-full bg-indigo-600 text-white"
 							onClick={refresh}
 							aria-label="Check Scheduled"

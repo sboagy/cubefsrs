@@ -16,10 +16,7 @@ import type { Page } from "@playwright/test";
 import { test as base } from "@playwright/test";
 import log from "loglevel";
 import { readStoredAuthStateMetadata } from "./auth-state";
-import {
-	clearCubefsrsClientStorage,
-	gotoCfOrigin,
-} from "./local-db-lifecycle";
+import { clearCubefsrsClientStorage, gotoCfOrigin } from "./local-db-lifecycle";
 import {
 	getTestUserByWorkerIndex,
 	TEST_USERS,
@@ -79,9 +76,7 @@ function isAuthFresh(authFile: string, userEmail: string): boolean {
 		}
 
 		if (metadata.expiresAtMs == null) {
-			console.log(
-				`⚠️  Auth file has no session expiry metadata: ${authFile}`,
-			);
+			console.log(`⚠️  Auth file has no session expiry metadata: ${authFile}`);
 			return false;
 		}
 

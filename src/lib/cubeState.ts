@@ -148,7 +148,9 @@ function toReid333Struct(pattern: KPattern): string[][] {
 
 export function patternToFacelets(pattern: KPattern): string {
 	const reid = toReid333Struct(pattern);
-	return REID_TO_FACELETS_MAP.map(([orbit, perm, ori]) => reid[orbit][perm][ori]).join("");
+	return REID_TO_FACELETS_MAP.map(
+		([orbit, perm, ori]) => reid[orbit][perm][ori],
+	).join("");
 }
 
 export function faceletsToPattern(facelets: string): KPattern {
@@ -180,13 +182,15 @@ export function faceletsToPattern(facelets: string): KPattern {
 	};
 
 	for (const cm of CORNER_MAPPING) {
-		const pi: PieceInfo = PIECE_MAP[cm.map((i) => FACE_ORDER[stickers[i]]).join("")];
+		const pi: PieceInfo =
+			PIECE_MAP[cm.map((i) => FACE_ORDER[stickers[i]]).join("")];
 		patternData.CORNERS.pieces.push(pi.piece);
 		patternData.CORNERS.orientation.push(pi.orientation);
 	}
 
 	for (const em of EDGE_MAPPING) {
-		const pi: PieceInfo = PIECE_MAP[em.map((i) => FACE_ORDER[stickers[i]]).join("")];
+		const pi: PieceInfo =
+			PIECE_MAP[em.map((i) => FACE_ORDER[stickers[i]]).join("")];
 		patternData.EDGES.pieces.push(pi.piece);
 		patternData.EDGES.orientation.push(pi.orientation);
 	}
@@ -197,7 +201,8 @@ export function faceletsToPattern(facelets: string): KPattern {
 
 export async function scrambleToMatchFacelets(facelets: string) {
 	// If already solved, empty scramble
-	if (facelets === "UUUUUUUUURRRRRRRRRFFFFFFFFFDDDDDDDDDLLLLLLLLLBBBBBBBBB") return "";
+	if (facelets === "UUUUUUUUURRRRRRRRRFFFFFFFFFDDDDDDDDDLLLLLLLLLBBBBBBBBB")
+		return "";
 	const kpattern = faceletsToPattern(facelets);
 	const solution = await experimentalSolve3x3x3IgnoringCenters(kpattern);
 	return solution.invert().toString();

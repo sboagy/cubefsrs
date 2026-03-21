@@ -64,7 +64,9 @@ function effectiveParams(): FsrsUserParams {
 		out.request_retention = clampNum(user.request_retention, 0.01, 1.0);
 	out.maximum_interval = Math.max(
 		1,
-		Math.round(typeof user.maximum_interval === "number" ? user.maximum_interval : 8),
+		Math.round(
+			typeof user.maximum_interval === "number" ? user.maximum_interval : 8,
+		),
 	);
 	return out;
 }
@@ -112,7 +114,11 @@ export function createInitialState(now: number): FSRSState {
 	};
 }
 
-export function review(prev: FSRSState, rating: Rating, now: number): ReviewResult {
+export function review(
+	prev: FSRSState,
+	rating: Rating,
+	now: number,
+): ReviewResult {
 	const card: Card = {
 		due: new Date(prev.due),
 		stability: prev.stability,
@@ -126,10 +132,10 @@ export function review(prev: FSRSState, rating: Rating, now: number): ReviewResu
 		last_review: prev.lastReview ? new Date(prev.lastReview) : undefined,
 	} as Card;
 
-	const scheduling = fsrsEngine.repeat(card, new Date(now)) as unknown as Record<
-		LibRating,
-		RecordLogItem
-	>;
+	const scheduling = fsrsEngine.repeat(
+		card,
+		new Date(now),
+	) as unknown as Record<LibRating, RecordLogItem>;
 	const item: RecordLogItem = scheduling[libRating(rating)];
 	const nextCard = item.card;
 	const updated: FSRSState = {
@@ -154,7 +160,10 @@ export function isDue(state: FSRSState, now: number): boolean {
 	return state.due <= now;
 }
 
-export function pickNextDue(states: Record<string, FSRSState>, now: number): string | null {
+export function pickNextDue(
+	states: Record<string, FSRSState>,
+	now: number,
+): string | null {
 	let best: { id: string; due: number } | null = null;
 	for (const id of Object.keys(states)) {
 		const s = states[id];

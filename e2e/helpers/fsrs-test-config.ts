@@ -31,8 +31,8 @@ export const FSRS_TEST_PARAMS = generatorParameters({
 	enable_fuzz: false,
 	// Minimum stability values so the first Good rating produces a ~1-day interval
 	w: [
-		0.4, 0.6, 2.4, 5.8, 4.93, 0.94, 0.86, 0.01, 1.49, 0.14, 1.0, 1.96,
-		1.13, 0.28, 0.28, 2.18, 0.28, 0.28, 0.28,
+		0.4, 0.6, 2.4, 5.8, 4.93, 0.94, 0.86, 0.01, 1.49, 0.14, 1.0, 1.96, 1.13,
+		0.28, 0.28, 2.18, 0.28, 0.28, 0.28,
 	],
 	request_retention: 0.9,
 	maximum_interval: 36500,

@@ -3,8 +3,12 @@ import { safeGet, safeSet } from "@/services/persistence/localStorage";
 
 export type OrientationMode = "white-up" | "yellow-up";
 
-const stored = safeGet<OrientationMode>("cubefsrs.orientationMode", "yellow-up");
-const [orientationMode, setOrientationModeSignal] = createSignal<OrientationMode>(stored);
+const stored = safeGet<OrientationMode>(
+	"cubefsrs.orientationMode",
+	"yellow-up",
+);
+const [orientationMode, setOrientationModeSignal] =
+	createSignal<OrientationMode>(stored);
 
 export { orientationMode };
 
