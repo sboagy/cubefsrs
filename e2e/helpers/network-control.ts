@@ -4,15 +4,19 @@
  * Helpers for simulating offline/online states and network conditions.
  * Adapted from TuneTrees' `e2e/helpers/network-control.ts`.
  *
- * The CubeFSRS sync worker defaults to `http://localhost:8787` (resolved from
- * `VITE_WORKER_URL`).  Use `blockWorker()` / `unblockWorker()` when a test
- * needs to assert on sync-queue state without triggering an actual push.
+ * The CubeFSRS sync worker URL is resolved from `VITE_WORKER_URL`. Use
+ * `blockWorker()` / `unblockWorker()` when a test needs to assert on
+ * sync-queue state without triggering an actual push.
  */
 
 import type { Page, Route } from "@playwright/test";
 
 /** Default URL pattern that matches the local sync worker. */
-export const WORKER_URL_PATTERN = "*://localhost:8787/**";
+const DEFAULT_WORKER_URL = "http://localhost:8797";
+const resolvedWorkerUrl = process.env.VITE_WORKER_URL ?? DEFAULT_WORKER_URL;
+const resolvedWorker = new URL(resolvedWorkerUrl);
+const resolvedWorkerPort = resolvedWorker.port || "80";
+export const WORKER_URL_PATTERN = `*://${resolvedWorker.hostname}:${resolvedWorkerPort}/**`;
 
 /**
  * Put the browser context offline.
