@@ -108,7 +108,7 @@ describe("toggleCase", () => {
 		expect(isSelected(CASE_B)).toBe(true);
 	});
 
-	it("is idempotent for a second select", () => {
+	it("toggles a case back off when called twice", () => {
 		toggleCase(CASE_A);
 		toggleCase(CASE_A); // second call deselects
 		expect(isSelected(CASE_A)).toBe(false);
