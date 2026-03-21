@@ -1,7 +1,8 @@
 import { Alg } from "cubing/alg";
-import { TwistyPlayer } from "cubing/twisty";
+import type { TwistyPlayer } from "cubing/twisty";
 import { createEffect, onCleanup, onMount, untrack } from "solid-js";
 import { mapTokenByZ2 } from "@/lib/orientationMap";
+import { createTwistyPlayerMount } from "@/lib/twisty/createTwistyPlayerMount";
 import { device } from "@/stores/device";
 import { orientationMode } from "@/stores/orientation";
 import { settings } from "@/stores/settings";
@@ -109,7 +110,7 @@ export default function CubeViewer(props: Props) {
 
 	onMount(() => {
 		if (!container) return;
-		player = new TwistyPlayer({
+		player = createTwistyPlayerMount({
 			puzzle: "3x3x3",
 			visualization: "PG3D",
 			alg: "",

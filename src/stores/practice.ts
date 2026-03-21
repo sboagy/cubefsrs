@@ -75,6 +75,10 @@ function setCurrent(id: string | null) {
 	setPractice("startAt", null);
 }
 
+export function clearCurrent() {
+	setCurrent(null);
+}
+
 export function visit(id: string) {
 	if (
 		practice.historyIndex >= 0 &&

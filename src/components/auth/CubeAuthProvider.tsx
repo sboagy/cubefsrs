@@ -1,4 +1,5 @@
 import { AuthProvider, type LocalDatabase } from "@rhizome/core";
+import type { User } from "@supabase/supabase-js";
 import { createSignal, type ParentComponent } from "solid-js";
 import { needsCatalogSeed } from "@/lib/db/catalog-seeder";
 import { closeDb, getDb, initializeDb } from "@/lib/db/client-sqlite";
@@ -69,7 +70,7 @@ const CubeAuthProvider: ParentComponent = (props) => {
 	return (
 		<AuthProvider
 			supabaseClient={client}
-			onSignIn={async (user) => {
+			onSignIn={async (user: User) => {
 				// Guard against duplicate onSignIn calls for the same user.
 				// Supabase fires both getSession() and onAuthStateChange(SIGNED_IN)
 				// near-simultaneously on page load; the second call must be a no-op
@@ -151,6 +152,13 @@ const CubeAuthProvider: ParentComponent = (props) => {
 					svc.startAutoSync();
 					// Cast: SqliteDatabase satisfies LocalDatabase's all<T>() interface.
 					setLocalDb(db as unknown as LocalDatabase);
+
+					// 8. In test mode, expose the mutation boundary for E2E fixtures.
+					//    This must run after the DB and sync service are fully initialised.
+					if (import.meta.env.MODE === "test") {
+						const { attachCfTestApi } = await import("@/lib/e2e-test-api");
+						attachCfTestApi({ db, userId: user.id, syncService: svc });
+					}
 				} catch (err) {
 					console.error("[CubeAuthProvider] onSignIn DB init failed:", err);
 				}
