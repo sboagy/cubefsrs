@@ -221,7 +221,6 @@ export function attachCfTestApi(controls: CfTestApiControls): void {
 						caseIds.map((caseId) => ({
 							userId,
 							caseId,
-							createdAt: new Date().toISOString(),
 						})),
 					);
 				}
