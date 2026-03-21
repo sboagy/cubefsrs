@@ -136,13 +136,12 @@ export async function setupDeterministicTestParallel(
 			},
 			{ timeout: SEEDED_SETUP_TIMEOUT_MS },
 		);
+
+		// For seeded scenarios, clear any existing user data before applying seeds.
+		// autoCleanupDb already deletes IndexedDB between tests; this ensures any
+		// additional user-scoped state managed by __cfTestApi is reset when seeding.
+		await page.evaluate(() => window.__cfTestApi?.clearUserData());
 	}
-
-	// clearUserData is a no-op when __cfTestApi is not yet attached (optional
-	// chain). For non-seeding tests this is fine — autoCleanupDb already deleted
-	// the IndexedDB in the previous test's teardown so there is nothing to clear.
-	await page.evaluate(() => window.__cfTestApi?.clearUserData());
-
 	if (opts.selectedCaseIds && opts.selectedCaseIds.length > 0) {
 		await page.evaluate(
 			(caseIds) =>
