@@ -34,25 +34,35 @@ async function seedOneDueCard({
 	});
 }
 
+async function gradeSingleDueCardAndAssertDequeued({
+	page,
+	gradeButton,
+	cfPage,
+}: {
+	page: Parameters<typeof getCfTestApi>[0];
+	gradeButton: CubeFSRSPage["gradeBarAgain"];
+	cfPage: CubeFSRSPage;
+}) {
+	const api = await getCfTestApi(page);
+	await expect.poll(() => api.getPracticeQueueCount()).toBe(1);
+
+	await gradeButton.click();
+
+	await expect.poll(() => api.getPracticeQueueCount()).toBe(0);
+	await expect(cfPage.emptyStateMessage).toBeVisible({ timeout: 10_000 });
+}
+
 cfTest.describe("practice-003: grading", () => {
 	cfTest("clicking Again advances the card", async ({ page, testUser }) => {
 		const cfPage = new CubeFSRSPage(page);
 		await seedOneDueCard({ page, testUser });
 
 		await expect(cfPage.gradeBarAgain).toBeVisible({ timeout: 10_000 });
-
-		// Record initial queue count.
-		const api = await getCfTestApi(page);
-		const beforeCount = await api.getPracticeQueueCount();
-		expect(beforeCount).toBeGreaterThan(0);
-
-		// Click Again.
-		await cfPage.gradeBarAgain.click();
-
-		// After grading, the card moves to a new due date.
-		// The queue may update (add back due cards) or show empty state.
-		// Just verify the grade button click didn't crash the app.
-		await expect(page.locator("body")).toBeVisible();
+		await gradeSingleDueCardAndAssertDequeued({
+			page,
+			gradeButton: cfPage.gradeBarAgain,
+			cfPage,
+		});
 	});
 
 	cfTest("clicking Good advances the card", async ({ page, testUser }) => {
@@ -60,10 +70,11 @@ cfTest.describe("practice-003: grading", () => {
 		await seedOneDueCard({ page, testUser });
 
 		await expect(cfPage.gradeBarGood).toBeVisible({ timeout: 10_000 });
-		await cfPage.gradeBarGood.click();
-
-		// App should still be functional after grading.
-		await expect(page.locator("body")).toBeVisible();
+		await gradeSingleDueCardAndAssertDequeued({
+			page,
+			gradeButton: cfPage.gradeBarGood,
+			cfPage,
+		});
 	});
 
 	cfTest("clicking Easy advances the card", async ({ page, testUser }) => {
@@ -71,9 +82,11 @@ cfTest.describe("practice-003: grading", () => {
 		await seedOneDueCard({ page, testUser });
 
 		await expect(cfPage.gradeBarEasy).toBeVisible({ timeout: 10_000 });
-		await cfPage.gradeBarEasy.click();
-
-		await expect(page.locator("body")).toBeVisible();
+		await gradeSingleDueCardAndAssertDequeued({
+			page,
+			gradeButton: cfPage.gradeBarEasy,
+			cfPage,
+		});
 	});
 
 	cfTest("clicking Hard advances the card", async ({ page, testUser }) => {
@@ -81,8 +94,10 @@ cfTest.describe("practice-003: grading", () => {
 		await seedOneDueCard({ page, testUser });
 
 		await expect(cfPage.gradeBarHard).toBeVisible({ timeout: 10_000 });
-		await cfPage.gradeBarHard.click();
-
-		await expect(page.locator("body")).toBeVisible();
+		await gradeSingleDueCardAndAssertDequeued({
+			page,
+			gradeButton: cfPage.gradeBarHard,
+			cfPage,
+		});
 	});
 });
