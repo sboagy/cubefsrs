@@ -8,10 +8,17 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
+  workflow_dispatch: # <-- This is your manual trigger
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
+
+# Opt into Node.js 24 for all JavaScript actions (required before June 2026 forced migration).
+# This silences Node.js 20 deprecation warnings, including 1password/install-cli-action@v2
+# which has no Node 24-native release yet.
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
 
 jobs:
   lighthouse:
@@ -23,13 +30,13 @@ jobs:
 
     steps:
       - name: Checkout cubefsrs
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Install 1Password CLI
         uses: 1password/install-cli-action@v2
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: "22"
           cache: "npm"
