@@ -16,6 +16,12 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+# Opt into Node.js 24 for all JavaScript actions (required before June 2026 forced migration).
+# This silences Node.js 20 deprecation warnings, including 1password/install-cli-action@v2
+# which has no Node 24-native release yet.
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+
 jobs:
   # --------------------------------------------------------------------------
   # JOB 0: UNIT TESTS (VITEST)
@@ -30,13 +36,13 @@ jobs:
 
     steps:
       - name: Checkout cubefsrs
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Install 1Password CLI
         uses: 1password/install-cli-action@v2
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: "22"
           cache: "npm"
@@ -73,14 +79,14 @@ jobs:
 
     steps:
       - name: Checkout cubefsrs
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           path: cubefsrs
 
       # oosync is a git-dependency; checkout alongside so npm ci can resolve
       # the local git+https reference without hitting network rate limits.
       - name: Checkout oosync
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           repository: sboagy/oosync
           ref: main
@@ -89,7 +95,7 @@ jobs:
       # rhizome owns the shared local Supabase instance config and the
       # db-push-local.sh orchestration script used to apply migrations/seeds.
       - name: Checkout rhizome
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           repository: sboagy/rhizome
           ref: main
@@ -108,7 +114,7 @@ jobs:
           docker system prune -a -f || true
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: "22"
           cache: "npm"
@@ -220,11 +226,16 @@ jobs:
           echo "SUPABASE_JWT_SECRET=super-secret-jwt-token-with-at-least-32-characters-long" >> .dev.vars
           echo "DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:54322/postgres" >> .dev.vars
 
+      # Pre-create output directories so artifact upload steps never fail with
+      # "No files were found" when Playwright exits early or produces no output.
+      - name: Create Playwright output directories
+        working-directory: cubefsrs
+        run: mkdir -p playwright-logs blob-report test-results
+
       - name: Run Playwright Tests (Shard ${{ matrix.shard }}/4)
         working-directory: cubefsrs
         run: |
           set -o pipefail
-          mkdir -p playwright-logs
           echo "🎬 Running sharded test suite (shard ${{ matrix.shard }}/4)"
           npm run test:e2e -- \
             --shard=${{ matrix.shard }}/4 \
@@ -273,10 +284,10 @@ jobs:
 
     steps:
       - name: Checkout cubefsrs
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: "22"
           cache: "npm"
@@ -335,13 +346,13 @@ jobs:
 
     steps:
       - name: Checkout cubefsrs
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Install 1Password CLI
         uses: 1password/install-cli-action@v2
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: "22"
           cache: "npm"
@@ -377,13 +388,13 @@ jobs:
 
     steps:
       - name: Checkout cubefsrs
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Install 1Password CLI
         uses: 1password/install-cli-action@v2
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: "22"
           cache: "npm"
