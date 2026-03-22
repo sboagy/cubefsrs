@@ -49,6 +49,11 @@ jobs:
       - name: Build Application
         run: npm run build
 
+      # Pre-create output directory so the artifact upload step never fails
+      # with "No files were found" when Lighthouse produces no output.
+      - name: Create Lighthouse output directory
+        run: mkdir -p .lighthouseci
+
       - name: Run Lighthouse CI
         run: |
           npm install -g @lhci/cli@0.13.x
@@ -58,7 +63,7 @@ jobs:
 
       - name: Upload Lighthouse Reports
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: lighthouse-reports
           path: .lighthouseci/
