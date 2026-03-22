@@ -50,11 +50,6 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      # npm's prepare hook for git deps may skip devDependencies (including vite),
-      # leaving @rhizome/core without a built dist/. Rebuild explicitly.
-      - name: Build @rhizome/core dependency
-        run: (cd node_modules/@rhizome/core && npm install --include=dev && npm run build)
-
       - name: Run unit tests
         run: npm run test
 
@@ -128,12 +123,6 @@ jobs:
       - name: Install dependencies
         working-directory: cubefsrs
         run: npm ci
-
-      # npm's prepare hook for git deps may skip devDependencies (including vite),
-      # leaving @rhizome/core without a built dist/. Rebuild explicitly.
-      - name: Build @rhizome/core dependency
-        working-directory: cubefsrs
-        run: (cd node_modules/@rhizome/core && npm install --include=dev && npm run build)
 
       # --- Supabase Setup ---
       # Supabase is started from the rhizome directory because rhizome owns
@@ -370,11 +359,6 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
-
-      # npm's prepare hook for git deps may skip devDependencies (including vite),
-      # leaving @rhizome/core without a built dist/. Rebuild explicitly.
-      - name: Build @rhizome/core dependency
-        run: (cd node_modules/@rhizome/core && npm install --include=dev && npm run build)
 
       # Build uses `op run` wrappers in package.json to inject VITE_ secrets
       # from the rhizome vault at build time.
