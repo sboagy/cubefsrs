@@ -68,6 +68,8 @@ jobs:
           name: lighthouse-reports
           path: .lighthouseci/
           retention-days: 30
+          # lhci uploads to temporary-public-storage; local files may not exist
+          if-no-files-found: ignore
 
       - name: Comment PR with Lighthouse Results
         if: github.event_name == 'pull_request'
