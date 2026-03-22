@@ -157,6 +157,14 @@ jobs:
         if: steps.cache-docker-images.outputs.cache-hit == 'true'
         run: docker load -i ~/supabase-docker-images.tar
 
+      # Stop any containers that may have been restored from the Docker image
+      # cache with stale port bindings (port 54322 already in use).
+      - name: Stop any stale Supabase containers
+        working-directory: rhizome
+        run: |
+          supabase stop --no-backup 2>/dev/null || true
+          docker network prune -f 2>/dev/null || true
+
       # Start Supabase from the rhizome directory (shared config).
       - name: Start Supabase Local Stack
         id: supabase
