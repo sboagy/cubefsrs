@@ -75,6 +75,6 @@
 		"vite-plugin-solid": "^2.10.2",
 		"vite-plugin-static-copy": "^3.3.0",
 		"vitest": "^3.0.0",
-		"oosync": "git+https://github.com/sboagy/oosync.git#main"
+		"oosync": "git+https://github.com/sboagy/oosync.git#fix/pgschema-support"
 	}
 }

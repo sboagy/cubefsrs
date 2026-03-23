@@ -15,7 +15,7 @@
 		"wrangler": "^4.52.1"
 	},
 	"dependencies": {
-		"oosync": "git+https://github.com/sboagy/oosync.git#main",
+		"oosync": "git+https://github.com/sboagy/oosync.git#fix/pgschema-support",
 		"drizzle-orm": "^0.45.1",
 		"jose": "^6.1.2",
 		"postgres": "^3.0.0"
