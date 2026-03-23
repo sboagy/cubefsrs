@@ -229,6 +229,13 @@ jobs:
         run: |
           docker images --format "{{.Repository}}:{{.Tag}}" | grep supabase | xargs docker save -o ~/supabase-docker-images.tar
 
+      # Seed shared workspace auth users from rhizome before CubeFSRS-specific
+      # migrations and seeds run. The auth schema is shared across apps.
+      - name: Seed Shared Auth Users
+        working-directory: rhizome
+        run: |
+          bash scripts/seed-shared-auth-users-local.sh
+
       # Apply CubeFSRS migrations and seeds via rhizome's orchestration script.
       # This avoids running `supabase db reset` (which resets the entire DB);
       # it instead applies only cubefsrs-scoped migrations and seeds.
