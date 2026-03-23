@@ -16,8 +16,8 @@ import type { Page } from "@playwright/test";
 import { test as base } from "@playwright/test";
 import log from "loglevel";
 import {
-	CURRENT_AUTH_STATE_SNAPSHOT_VERSION,
 	CURRENT_AUTH_STATE_DB_VERSION,
+	CURRENT_AUTH_STATE_SNAPSHOT_VERSION,
 	readStoredAuthStateMetadata,
 } from "./auth-state";
 import { clearCubefsrsClientStorage, gotoCfOrigin } from "./local-db-lifecycle";

@@ -26,8 +26,8 @@ import { config } from "dotenv";
 import {
 	AUTH_STATE_DB_VERSION_STORAGE_KEY,
 	AUTH_STATE_SNAPSHOT_VERSION_STORAGE_KEY,
-	CURRENT_AUTH_STATE_SNAPSHOT_VERSION,
 	CURRENT_AUTH_STATE_DB_VERSION,
+	CURRENT_AUTH_STATE_SNAPSHOT_VERSION,
 	readStoredAuthStateMetadata,
 } from "../helpers/auth-state";
 import { TEST_USERS } from "../helpers/test-users";
@@ -99,9 +99,11 @@ async function waitForCatalogSnapshotReady(
 
 	while (Date.now() < deadline) {
 		lastCount = await page.evaluate(async () => {
-			const api = (window as unknown as {
-				__cfTestApi?: import("../../src/lib/e2e-test-api").CfTestApi;
-			}).__cfTestApi;
+			const api = (
+				window as unknown as {
+					__cfTestApi?: import("../../src/lib/e2e-test-api").CfTestApi;
+				}
+			).__cfTestApi;
 			if (!api) return 0;
 			return await api.getCatalogCaseCount();
 		});
@@ -120,8 +122,9 @@ async function waitForCatalogSnapshotReady(
 			const result = sqlite?.exec(`SELECT COUNT(*) FROM "${tableName}"`);
 			return Number(result?.[0]?.values?.[0]?.[0] ?? 0);
 		};
-		const algCaseColumns = (sqlite?.exec("PRAGMA table_info('alg_case')")?.[0]
-			?.values ?? [])
+		const algCaseColumns = (
+			sqlite?.exec("PRAGMA table_info('alg_case')")?.[0]?.values ?? []
+		)
 			.map((row) => String(row[1] ?? ""))
 			.filter(Boolean);
 
