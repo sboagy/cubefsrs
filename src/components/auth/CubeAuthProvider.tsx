@@ -1,5 +1,5 @@
 import { AuthProvider, type LocalDatabase } from "@rhizome/core";
-import type { User } from "@supabase/supabase-js";
+import type { SupabaseClient, User } from "@supabase/supabase-js";
 import { createSignal, type ParentComponent } from "solid-js";
 import { needsCatalogSeed } from "@/lib/db/catalog-seeder";
 import { closeDb, getDb, initializeDb } from "@/lib/db/client-sqlite";
@@ -15,6 +15,11 @@ import { SyncService } from "@/lib/sync";
 import { getSupabaseClient } from "@/services/supabase";
 import { algs } from "@/stores/algs";
 
+const LAST_SYNC_TIMESTAMP_PREFIXES = [
+	"CF_LAST_SYNC_TIMESTAMP",
+	"TT_LAST_SYNC_TIMESTAMP",
+] as const;
+
 // Holds the stop function for the current sync session; cleared on sign-out.
 let stopSync: (() => void) | null = null;
 // The SyncService instance for the current session; used by forceSyncDown/forceSyncUp.
@@ -23,6 +28,12 @@ let syncService: SyncService | null = null;
 // duplicate onSignIn call (getSession() races with onAuthStateChange) is
 // detected and silently no-ops instead of creating a second SyncEngine.
 let syncSessionUserId: string | null = null;
+
+function clearPersistedSyncTimestamps(userId: string): void {
+	for (const prefix of LAST_SYNC_TIMESTAMP_PREFIXES) {
+		localStorage.removeItem(`${prefix}_${userId}`);
+	}
+}
 
 /**
  * App-level auth provider for CubeFSRS.
@@ -42,6 +53,24 @@ const CubeAuthProvider: ParentComponent = (props) => {
 	const [lastSyncMode, setLastSyncMode] = createSignal<
 		"full" | "incremental" | null
 	>(null);
+
+	const createSyncService = (userId: string, client: SupabaseClient) =>
+		new SyncService(getDb()!, {
+			supabase: client,
+			userId,
+			syncIntervalMs: 5000,
+			realtimeEnabled: false,
+			onSyncComplete: (result) => {
+				if (result.errors.length > 0) {
+					console.warn("[CubeAuthProvider] sync errors:", result.errors);
+				}
+				if (syncService) {
+					const ts = syncService.getLastSyncDownTimestamp();
+					if (ts) setLastSyncTimestamp(ts);
+					setLastSyncMode(syncService.getLastSyncMode());
+				}
+			},
+		});
 
 	/** Delegate force sync-down to the module-level SyncService instance. */
 	const forceSyncDown = async (opts?: { full?: boolean }) => {
@@ -100,24 +129,7 @@ const CubeAuthProvider: ParentComponent = (props) => {
 
 					// 2. Create sync service (don't start auto-sync yet) so we can use it
 					//    to seed SQLite on first run before loading stores.
-					const svc = new SyncService(db, {
-						supabase: client,
-						userId: user.id,
-						syncIntervalMs: 5000,
-						realtimeEnabled: false,
-						onSyncComplete: (result) => {
-							if (result.errors.length > 0) {
-								console.warn("[CubeAuthProvider] sync errors:", result.errors);
-							}
-							// Update timestamp signals so DbStatusDropdown reflects latest state
-							if (syncService) {
-								const ts = syncService.getLastSyncDownTimestamp();
-								if (ts) setLastSyncTimestamp(ts);
-								setLastSyncMode(syncService.getLastSyncMode());
-							}
-						},
-					});
-					// Store references early so onSyncComplete can read timestamps.
+					let svc = createSyncService(user.id, client);
 					syncService = svc;
 					stopSync = () => svc.stopAutoSync();
 
@@ -126,6 +138,14 @@ const CubeAuthProvider: ParentComponent = (props) => {
 					//    Supabase → worker → SQLite → stores (never from a bundled JSON file).
 					if (await needsCatalogSeed(db)) {
 						await svc.forceFullSyncDown();
+						// The bootstrap full sync seeds the local catalog, but CubeFSRS does
+						// not yet expose server-side incremental-sync infrastructure. Recreate
+						// the service with a cleared watermark so startup stays on a full pull.
+						clearPersistedSyncTimestamps(user.id);
+						svc.stopAutoSync();
+						svc = createSyncService(user.id, client);
+						syncService = svc;
+						stopSync = () => svc.stopAutoSync();
 					}
 
 					// 4. Load data from SQLite into the Solid stores
