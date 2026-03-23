@@ -296,7 +296,8 @@ export async function setupForPracticeTestsParallel(
 	} else {
 		await waitForCfTestApiCondition(page, "empty practice queue", 5_000, () =>
 			page.evaluate(async () => {
-				const api = (window as unknown as { __cfTestApi?: CfTestApi }).__cfTestApi;
+				const api = (window as unknown as { __cfTestApi?: CfTestApi })
+					.__cfTestApi;
 				if (!api) return false;
 				return (await api.getPracticeQueueCount()) === 0;
 			}),

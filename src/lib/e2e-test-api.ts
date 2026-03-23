@@ -35,8 +35,8 @@ import {
 	loadPracticeFromDb,
 	loadUserSettingsFromDb,
 } from "@/lib/db/store-loaders";
-import { setPractice } from "@/stores/practice";
 import { ensureSyncRuntimeConfigured, type SyncService } from "@/lib/sync";
+import { setPractice } from "@/stores/practice";
 
 // ---------------------------------------------------------------------------
 // Public interface exposed as window.__cfTestApi
