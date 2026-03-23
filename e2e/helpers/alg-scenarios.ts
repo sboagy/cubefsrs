@@ -37,9 +37,7 @@ async function waitForCfTestApiCondition(
 	}
 
 	const reason = lastError instanceof Error ? ` ${lastError.message}` : "";
-	throw new Error(
-		`[alg-scenarios] Timed out waiting for ${label}.${reason}`,
-	);
+	throw new Error(`[alg-scenarios] Timed out waiting for ${label}.${reason}`);
 }
 
 /**
@@ -185,7 +183,6 @@ export async function setupDeterministicTestParallel(
 		// autoCleanupDb already deletes IndexedDB between tests; this ensures any
 		// additional user-scoped state managed by __cfTestApi is reset when seeding.
 		await page.evaluate(() => window.__cfTestApi?.clearUserData());
-
 	}
 	if (opts.selectedCaseIds && opts.selectedCaseIds.length > 0) {
 		await page.evaluate(
@@ -261,17 +258,13 @@ export async function setupForPracticeTestsParallel(
 	// local-only seeded state restoration. Keep the already-seeded page in place
 	// and wait until the due queue is visible to the practice store.
 	if (cards.length > 0) {
-		await waitForCfTestApiCondition(
-			page,
-			"due practice queue",
-			10_000,
-			() =>
-				page.evaluate(async (expectedCount) => {
-					const api = (window as unknown as { __cfTestApi?: CfTestApi })
-						.__cfTestApi;
-					if (!api) return false;
-					return (await api.getPracticeQueueCount()) >= expectedCount;
-				}, cards.length),
+		await waitForCfTestApiCondition(page, "due practice queue", 10_000, () =>
+			page.evaluate(async (expectedCount) => {
+				const api = (window as unknown as { __cfTestApi?: CfTestApi })
+					.__cfTestApi;
+				if (!api) return false;
+				return (await api.getPracticeQueueCount()) >= expectedCount;
+			}, cards.length),
 		);
 	}
 }

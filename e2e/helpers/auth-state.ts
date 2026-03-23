@@ -9,7 +9,10 @@ export const AUTH_STATE_SNAPSHOT_VERSION_STORAGE_KEY =
 export const CURRENT_AUTH_STATE_SNAPSHOT_VERSION = 2;
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const CODEGEN_CONFIG_PATH = resolve(__dirname, "../../oosync.codegen.config.json");
+const CODEGEN_CONFIG_PATH = resolve(
+	__dirname,
+	"../../oosync.codegen.config.json",
+);
 
 function readCurrentAuthStateDbVersion(): number | null {
 	try {
@@ -97,7 +100,10 @@ export function readStoredAuthStateMetadata(
 					dbVersion = Number.isFinite(parsed) ? parsed : null;
 				}
 
-				if (entry.name === AUTH_STATE_SNAPSHOT_VERSION_STORAGE_KEY && entry.value) {
+				if (
+					entry.name === AUTH_STATE_SNAPSHOT_VERSION_STORAGE_KEY &&
+					entry.value
+				) {
 					const parsed = Number(entry.value);
 					snapshotVersion = Number.isFinite(parsed) ? parsed : null;
 				}
