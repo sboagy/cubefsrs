@@ -15,11 +15,6 @@ import { SyncService } from "@/lib/sync";
 import { getSupabaseClient } from "@/services/supabase";
 import { algs } from "@/stores/algs";
 
-const LAST_SYNC_TIMESTAMP_PREFIXES = [
-	"CF_LAST_SYNC_TIMESTAMP",
-	"TT_LAST_SYNC_TIMESTAMP",
-] as const;
-
 // Holds the stop function for the current sync session; cleared on sign-out.
 let stopSync: (() => void) | null = null;
 // The SyncService instance for the current session; used by forceSyncDown/forceSyncUp.
@@ -28,12 +23,6 @@ let syncService: SyncService | null = null;
 // duplicate onSignIn call (getSession() races with onAuthStateChange) is
 // detected and silently no-ops instead of creating a second SyncEngine.
 let syncSessionUserId: string | null = null;
-
-function clearPersistedSyncTimestamps(userId: string): void {
-	for (const prefix of LAST_SYNC_TIMESTAMP_PREFIXES) {
-		localStorage.removeItem(`${prefix}_${userId}`);
-	}
-}
 
 /**
  * App-level auth provider for CubeFSRS.
@@ -129,7 +118,7 @@ const CubeAuthProvider: ParentComponent = (props) => {
 
 					// 2. Create sync service (don't start auto-sync yet) so we can use it
 					//    to seed SQLite on first run before loading stores.
-					let svc = createSyncService(user.id, client);
+					const svc = createSyncService(user.id, client);
 					syncService = svc;
 					stopSync = () => svc.stopAutoSync();
 
@@ -138,14 +127,6 @@ const CubeAuthProvider: ParentComponent = (props) => {
 					//    Supabase → worker → SQLite → stores (never from a bundled JSON file).
 					if (await needsCatalogSeed(db)) {
 						await svc.forceFullSyncDown();
-						// The bootstrap full sync seeds the local catalog, but CubeFSRS does
-						// not yet expose server-side incremental-sync infrastructure. Recreate
-						// the service with a cleared watermark so startup stays on a full pull.
-						clearPersistedSyncTimestamps(user.id);
-						svc.stopAutoSync();
-						svc = createSyncService(user.id, client);
-						syncService = svc;
-						stopSync = () => svc.stopAutoSync();
 					}
 
 					// 4. Load data from SQLite into the Solid stores

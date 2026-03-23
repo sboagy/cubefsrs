@@ -107,6 +107,9 @@ export interface CfTestApi {
 	/** Return the number of catalog cases currently loaded into local SQLite. */
 	getCatalogCaseCount(): Promise<number>;
 
+	/** Return true when all requested catalog case IDs exist in local SQLite. */
+	hasCatalogCases(caseIds: string[]): Promise<boolean>;
+
 	/** Return the `caseId` values currently in `user_alg_selection`. */
 	getSelectedCaseIds(): Promise<string[]>;
 }
@@ -332,6 +335,15 @@ export function attachCfTestApi(controls: CfTestApiControls): void {
 		async getCatalogCaseCount() {
 			const result = await db.select({ cnt: count() }).from(schema.algCase);
 			return result[0]?.cnt ?? 0;
+		},
+
+		async hasCatalogCases(caseIds) {
+			if (caseIds.length === 0) return true;
+			const rows = await db
+				.select({ id: schema.algCase.id })
+				.from(schema.algCase)
+				.where(inArray(schema.algCase.id, caseIds));
+			return rows.length === new Set(caseIds).size;
 		},
 
 		async getSelectedCaseIds() {

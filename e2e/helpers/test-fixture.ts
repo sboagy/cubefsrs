@@ -15,7 +15,11 @@ import { existsSync } from "node:fs";
 import type { Page } from "@playwright/test";
 import { test as base } from "@playwright/test";
 import log from "loglevel";
-import { readStoredAuthStateMetadata } from "./auth-state";
+import {
+	CURRENT_AUTH_STATE_SNAPSHOT_VERSION,
+	CURRENT_AUTH_STATE_DB_VERSION,
+	readStoredAuthStateMetadata,
+} from "./auth-state";
 import { clearCubefsrsClientStorage, gotoCfOrigin } from "./local-db-lifecycle";
 import {
 	getTestUserByWorkerIndex,
@@ -66,6 +70,23 @@ function isAuthFresh(authFile: string, userEmail: string): boolean {
 		if (!metadata.hasIndexedDbSnapshot) {
 			console.log(
 				`⚠️  Auth file has no IndexedDB snapshot: ${authFile} (regenerate with npm run db:local:reset)`,
+			);
+			return false;
+		}
+
+		if (metadata.snapshotVersion !== CURRENT_AUTH_STATE_SNAPSHOT_VERSION) {
+			console.log(
+				`⚠️  Auth file snapshot version mismatch (have ${metadata.snapshotVersion ?? "none"}, need ${CURRENT_AUTH_STATE_SNAPSHOT_VERSION}): ${authFile}`,
+			);
+			return false;
+		}
+
+		if (
+			CURRENT_AUTH_STATE_DB_VERSION != null &&
+			metadata.dbVersion !== CURRENT_AUTH_STATE_DB_VERSION
+		) {
+			console.log(
+				`⚠️  Auth file DB version mismatch (have ${metadata.dbVersion ?? "none"}, need ${CURRENT_AUTH_STATE_DB_VERSION}): ${authFile}`,
 			);
 			return false;
 		}

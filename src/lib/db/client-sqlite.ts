@@ -38,11 +38,12 @@ export const browserSqliteClient = createBrowserSqliteClient({
 		outboxBackupKeyPrefix: "cubefsrs-outbox-backup",
 		lastSyncTimestampKeyPrefix: "CF_LAST_SYNC_TIMESTAMP",
 	},
-	databaseVersion: 2,
+	databaseVersion: 3,
 	schemaVersion: "1.0.0",
 	migrationFiles: [
 		"/drizzle/migrations/sqlite/0000_sticky_riptide.sql",
 		"/drizzle/migrations/sqlite/0001_fix_catalog_null_unique.sql",
+		"/drizzle/migrations/sqlite/0002_add_sync_columns.sql",
 	],
 	forceResetQueryParams: [
 		{ key: "reset", value: "true" },

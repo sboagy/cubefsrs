@@ -23,7 +23,13 @@ import { fileURLToPath } from "node:url";
 import { expect, test as setup } from "@playwright/test";
 import { createClient } from "@supabase/supabase-js";
 import { config } from "dotenv";
-import { readStoredAuthStateMetadata } from "../helpers/auth-state";
+import {
+	AUTH_STATE_DB_VERSION_STORAGE_KEY,
+	AUTH_STATE_SNAPSHOT_VERSION_STORAGE_KEY,
+	CURRENT_AUTH_STATE_SNAPSHOT_VERSION,
+	CURRENT_AUTH_STATE_DB_VERSION,
+	readStoredAuthStateMetadata,
+} from "../helpers/auth-state";
 import { TEST_USERS } from "../helpers/test-users";
 import { BASE_URL } from "../test-config";
 
@@ -72,7 +78,64 @@ function isAuthFileFresh(filePath: string): boolean {
 	const metadata = readStoredAuthStateMetadata(filePath);
 	if (!metadata?.hasIndexedDbSnapshot) return false;
 	if (metadata.expiresAtMs == null) return false;
+	if (metadata.snapshotVersion !== CURRENT_AUTH_STATE_SNAPSHOT_VERSION) {
+		return false;
+	}
+	if (
+		CURRENT_AUTH_STATE_DB_VERSION != null &&
+		metadata.dbVersion !== CURRENT_AUTH_STATE_DB_VERSION
+	) {
+		return false;
+	}
 	return metadata.expiresAtMs - Date.now() > AUTH_EXPIRY_SAFETY_WINDOW_MS;
+}
+
+async function waitForCatalogSnapshotReady(
+	page: import("@playwright/test").Page,
+	timeoutMs: number,
+): Promise<void> {
+	const deadline = Date.now() + timeoutMs;
+	let lastCount = 0;
+
+	while (Date.now() < deadline) {
+		lastCount = await page.evaluate(async () => {
+			const api = (window as unknown as {
+				__cfTestApi?: import("../../src/lib/e2e-test-api").CfTestApi;
+			}).__cfTestApi;
+			if (!api) return 0;
+			return await api.getCatalogCaseCount();
+		});
+
+		if (lastCount > 0) {
+			return;
+		}
+
+		await page.waitForTimeout(100);
+	}
+
+	const timeoutDiagnostics = await page.evaluate(async () => {
+		const clientSqlite = await import("../../src/lib/db/client-sqlite.ts");
+		const sqlite = await clientSqlite.getSqliteInstance();
+		const execCount = (tableName: string) => {
+			const result = sqlite?.exec(`SELECT COUNT(*) FROM "${tableName}"`);
+			return Number(result?.[0]?.values?.[0]?.[0] ?? 0);
+		};
+		const algCaseColumns = (sqlite?.exec("PRAGMA table_info('alg_case')")?.[0]
+			?.values ?? [])
+			.map((row) => String(row[1] ?? ""))
+			.filter(Boolean);
+
+		return {
+			algCaseCount: execCount("alg_case"),
+			algCategoryCount: execCount("alg_category"),
+			algSubsetCount: execCount("alg_subset"),
+			algCaseColumns,
+		};
+	});
+
+	throw new Error(
+		`[auth.setup] Timed out waiting for local catalog snapshot (last count: ${lastCount}, diagnostics: ${JSON.stringify(timeoutDiagnostics)})`,
+	);
 }
 
 /**
@@ -192,6 +255,11 @@ setup("authenticate all test users", async ({ browser }) => {
 					);
 				});
 
+			// Auth snapshots must include a populated local catalog. Otherwise later
+			// tests can restore a signed-in session whose IndexedDB is structurally
+			// valid but unusable for seeded practice scenarios.
+			await waitForCatalogSnapshotReady(page, 30_000);
+
 			// Remove sync timestamp localStorage keys so tests perform a fresh
 			// initial sync rather than an incremental one.
 			await page.evaluate(() => {
@@ -207,6 +275,28 @@ setup("authenticate all test users", async ({ browser }) => {
 					localStorage.removeItem(key);
 				}
 			});
+
+			if (CURRENT_AUTH_STATE_DB_VERSION != null) {
+				await page.evaluate(
+					({ key, value }) => {
+						localStorage.setItem(key, String(value));
+					},
+					{
+						key: AUTH_STATE_DB_VERSION_STORAGE_KEY,
+						value: CURRENT_AUTH_STATE_DB_VERSION,
+					},
+				);
+			}
+
+			await page.evaluate(
+				({ key, value }) => {
+					localStorage.setItem(key, String(value));
+				},
+				{
+					key: AUTH_STATE_SNAPSHOT_VERSION_STORAGE_KEY,
+					value: CURRENT_AUTH_STATE_SNAPSHOT_VERSION,
+				},
+			);
 
 			// Verify we're on a non-login page (quick sanity check)
 			await expect(page).not.toHaveURL(/\/login/, { timeout: 2_000 });
