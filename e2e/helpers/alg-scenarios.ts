@@ -40,6 +40,21 @@ async function waitForCfTestApiCondition(
 	throw new Error(`[alg-scenarios] Timed out waiting for ${label}.${reason}`);
 }
 
+async function waitForCfTestApi(
+	page: Page,
+	timeoutMs: number,
+): Promise<boolean> {
+	try {
+		await page.waitForFunction(
+			() => !!(window as unknown as { __cfTestApi?: unknown }).__cfTestApi,
+			{ timeout: timeoutMs },
+		);
+		return true;
+	} catch {
+		return false;
+	}
+}
+
 /**
  * Retrieve `window.__cfTestApi` from the page.
  * Throws if the API is not attached (app not running in test mode, or user
@@ -183,6 +198,18 @@ export async function setupDeterministicTestParallel(
 		// autoCleanupDb already deletes IndexedDB between tests; this ensures any
 		// additional user-scoped state managed by __cfTestApi is reset when seeding.
 		await page.evaluate(() => window.__cfTestApi?.clearUserData());
+	} else {
+		// No-card scenarios must still clear any user-owned rows restored by the
+		// auth snapshot, otherwise Mobile Chrome can intermittently keep stale
+		// practice state and never render the empty-state UI. Wait for the E2E API
+		// and clear deterministically instead of polling the DOM.
+		const hasApi = await waitForCfTestApi(page, SEEDED_SETUP_TIMEOUT_MS);
+		if (!hasApi) {
+			throw new Error(
+				"[alg-scenarios] Timed out waiting for __cfTestApi in no-card setup.",
+			);
+		}
+		await page.evaluate(() => window.__cfTestApi?.clearUserData());
 	}
 	if (opts.selectedCaseIds && opts.selectedCaseIds.length > 0) {
 		await page.evaluate(
@@ -265,6 +292,14 @@ export async function setupForPracticeTestsParallel(
 				if (!api) return false;
 				return (await api.getPracticeQueueCount()) >= expectedCount;
 			}, cards.length),
+		);
+	} else {
+		await waitForCfTestApiCondition(page, "empty practice queue", 5_000, () =>
+			page.evaluate(async () => {
+				const api = (window as unknown as { __cfTestApi?: CfTestApi }).__cfTestApi;
+				if (!api) return false;
+				return (await api.getPracticeQueueCount()) === 0;
+			}),
 		);
 	}
 }

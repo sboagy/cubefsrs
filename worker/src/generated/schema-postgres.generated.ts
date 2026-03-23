@@ -6,16 +6,17 @@
  */
 
 import {
+	PgSchema,
 	integer,
 	jsonb,
 	pgSchema,
-	pgTable,
 	real,
 	text,
 	uuid,
 } from "drizzle-orm/pg-core";
 
 const cubefsrsSchema = pgSchema("cubefsrs");
+const publicSchema = new PgSchema("public");
 
 export const algCase = cubefsrsSchema.table("alg_case", {
 	id: uuid("id")
@@ -152,7 +153,7 @@ export const userSettings = cubefsrsSchema.table("user_settings", {
 });
 
 // sync infrastructure table (public schema — required by oosync worker)
-export const syncChangeLog = pgTable("sync_change_log", {
+export const syncChangeLog = publicSchema.table("sync_change_log", {
 	tableName: text("table_name").notNull().primaryKey(),
 	changedAt: text("changed_at").notNull(),
 });

@@ -23,10 +23,10 @@
  * ambient auto-sync timing.
  */
 
-import { and, count, eq, inArray, lte } from "drizzle-orm";
 // getSyncRuntime is available after ensureSyncRuntimeConfigured() runs (wired
 // in src/lib/sync/index.ts via the runtime-config side-effect import).
-import { getSyncRuntime } from "oosync/sync";
+import { getSyncRuntime } from "@oosync/sync";
+import { and, count, eq, inArray, lte } from "drizzle-orm";
 import type { SqliteDatabase } from "@/lib/db/client-sqlite";
 import { persistDb, schema } from "@/lib/db/client-sqlite";
 import {
@@ -35,7 +35,8 @@ import {
 	loadPracticeFromDb,
 	loadUserSettingsFromDb,
 } from "@/lib/db/store-loaders";
-import type { SyncService } from "@/lib/sync";
+import { setPractice } from "@/stores/practice";
+import { ensureSyncRuntimeConfigured, type SyncService } from "@/lib/sync";
 
 // ---------------------------------------------------------------------------
 // Public interface exposed as window.__cfTestApi
@@ -194,6 +195,14 @@ async function withLocalOnlyWrites(
 export function attachCfTestApi(controls: CfTestApiControls): void {
 	const { db, userId, syncService } = controls;
 
+	const resetTransientPracticeState = () => {
+		setPractice("currentId", null);
+		setPractice("running", false);
+		setPractice("startAt", null);
+		setPractice("history", []);
+		setPractice("historyIndex", -1);
+	};
+
 	const rehydrateStores = async () => {
 		await loadAlgsFromDb(db, userId);
 		await loadFsrsFromDb(db, userId);
@@ -268,6 +277,9 @@ export function attachCfTestApi(controls: CfTestApiControls): void {
 		async clearUserData() {
 			await withLocalOnlyWrites(db, syncService, async () => {
 				await db
+					.delete(schema.practiceTimeEntry)
+					.where(eq(schema.practiceTimeEntry.userId, userId));
+				await db
 					.delete(schema.userAlgSelection)
 					.where(eq(schema.userAlgSelection.userId, userId));
 				await db
@@ -281,6 +293,7 @@ export function attachCfTestApi(controls: CfTestApiControls): void {
 					.where(eq(schema.userSettings.userId, userId));
 			});
 			await rehydrateStores();
+			resetTransientPracticeState();
 		},
 
 		pauseAutoSync() {
@@ -292,6 +305,10 @@ export function attachCfTestApi(controls: CfTestApiControls): void {
 		},
 
 		async forceSyncUp() {
+			// Reassert runtime wiring before entering the oosync engine. In dev/test,
+			// Vite can load the E2E API and sync engine through different module
+			// identities unless we explicitly configure the shared runtime here.
+			ensureSyncRuntimeConfigured();
 			await syncService.syncUp();
 		},
 
