@@ -166,11 +166,49 @@ jobs:
           docker network prune -f 2>/dev/null || true
 
       # Start Supabase from the rhizome directory (shared config).
+      #
+      # PostgREST is configured to expose the cubefsrs schema, but that schema
+      # only exists after cubefsrs app migrations run (via db-push-local.sh),
+      # which runs AFTER supabase start completes. PostgREST fails its health
+      # check on every retry if the schema is absent, causing supabase start to
+      # time out. We break the deadlock by running supabase start in the
+      # background, waiting for Postgres to be ready (Postgres always starts
+      # before PostgREST), injecting an empty schema stub via psql, and then
+      # letting supabase start complete. PostgREST's 1s/2s/4s/... retry backoff
+      # gives us the window. db-push-local.sh later adds the actual DDL.
       - name: Start Supabase Local Stack
         id: supabase
         working-directory: rhizome
         run: |
-          supabase start
+          # Run in background so we can inject the schema stub before PostgREST
+          # exhausts its startup retries.
+          supabase start &
+          SUPABASE_PID=$!
+
+          # Wait for Postgres to accept connections (it comes up before PostgREST).
+          echo "Waiting for PostgreSQL on 127.0.0.1:54322..."
+          for i in $(seq 1 120); do
+            if pg_isready -h 127.0.0.1 -p 54322 -U postgres -q 2>/dev/null; then
+              echo "PostgreSQL ready (attempt $i)"
+              break
+            fi
+            if [ "$i" -eq 120 ]; then
+              echo "Timed out waiting for PostgreSQL"
+              kill "$SUPABASE_PID" 2>/dev/null || true
+              exit 1
+            fi
+            sleep 0.5
+          done
+
+          # Create the empty cubefsrs schema so PostgREST can load its cache.
+          # This is idempotent; the actual DDL comes from db-push-local.sh later.
+          echo "Creating cubefsrs schema stub for PostgREST..."
+          psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" \
+            -c "CREATE SCHEMA IF NOT EXISTS cubefsrs;"
+
+          # Wait for supabase start to finish and propagate its exit code.
+          wait "$SUPABASE_PID"
+
           echo "SUPABASE_URL=$(supabase status --output json | jq -r '.API_URL')" >> $GITHUB_ENV
           echo "SUPABASE_ANON_KEY=$(supabase status --output json | jq -r '.ANON_KEY')" >> $GITHUB_ENV
           echo "VITE_SUPABASE_URL=$(supabase status --output json | jq -r '.API_URL')" >> $GITHUB_ENV
