@@ -10,13 +10,13 @@ import { createBrowserSqliteClient } from "oosync/runtime/browser-sqlite";
 // eslint-disable-next-line import/no-unresolved
 import sqlWasmUrl from "sql.js/dist/sql-wasm.wasm?url";
 import * as schema from "../../../drizzle/schema-sqlite";
-import { browserSqliteHooks } from "./oosync-browser-sqlite-hooks";
 import {
 	SYNCABLE_TABLES,
 	TABLE_REGISTRY,
 	TABLE_SYNC_ORDER,
 	TABLE_TO_SCHEMA_KEY,
 } from "../../../shared/table-meta";
+import { browserSqliteHooks } from "./oosync-browser-sqlite-hooks";
 
 export const browserSqliteClient = createBrowserSqliteClient({
 	schema,
@@ -38,13 +38,12 @@ export const browserSqliteClient = createBrowserSqliteClient({
 		outboxBackupKeyPrefix: "cubefsrs-outbox-backup",
 		lastSyncTimestampKeyPrefix: "CF_LAST_SYNC_TIMESTAMP",
 	},
-	databaseVersion: 2,
+	databaseVersion: 3,
 	schemaVersion: "1.0.0",
 	migrationFiles: [
 		"/drizzle/migrations/sqlite/0000_sticky_riptide.sql",
-		// v2: partial unique indexes on catalog tables so global rows (user_id IS NULL)
-		// are correctly deduplicated in SQLite (NULL != NULL in regular UNIQUE indexes).
 		"/drizzle/migrations/sqlite/0001_fix_catalog_null_unique.sql",
+		"/drizzle/migrations/sqlite/0002_add_sync_columns.sql",
 	],
 	forceResetQueryParams: [
 		{ key: "reset", value: "true" },

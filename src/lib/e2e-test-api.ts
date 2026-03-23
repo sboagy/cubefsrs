@@ -23,10 +23,10 @@
  * ambient auto-sync timing.
  */
 
-import { and, count, eq, inArray, lte } from "drizzle-orm";
 // getSyncRuntime is available after ensureSyncRuntimeConfigured() runs (wired
 // in src/lib/sync/index.ts via the runtime-config side-effect import).
-import { getSyncRuntime } from "oosync/sync";
+import { getSyncRuntime } from "@oosync/sync";
+import { and, count, eq, inArray, lte } from "drizzle-orm";
 import type { SqliteDatabase } from "@/lib/db/client-sqlite";
 import { persistDb, schema } from "@/lib/db/client-sqlite";
 import {
@@ -35,7 +35,8 @@ import {
 	loadPracticeFromDb,
 	loadUserSettingsFromDb,
 } from "@/lib/db/store-loaders";
-import type { SyncService } from "@/lib/sync";
+import { ensureSyncRuntimeConfigured, type SyncService } from "@/lib/sync";
+import { setPractice } from "@/stores/practice";
 
 // ---------------------------------------------------------------------------
 // Public interface exposed as window.__cfTestApi
@@ -106,6 +107,9 @@ export interface CfTestApi {
 
 	/** Return the number of catalog cases currently loaded into local SQLite. */
 	getCatalogCaseCount(): Promise<number>;
+
+	/** Return true when all requested catalog case IDs exist in local SQLite. */
+	hasCatalogCases(caseIds: string[]): Promise<boolean>;
 
 	/** Return the `caseId` values currently in `user_alg_selection`. */
 	getSelectedCaseIds(): Promise<string[]>;
@@ -191,6 +195,14 @@ async function withLocalOnlyWrites(
 export function attachCfTestApi(controls: CfTestApiControls): void {
 	const { db, userId, syncService } = controls;
 
+	const resetTransientPracticeState = () => {
+		setPractice("currentId", null);
+		setPractice("running", false);
+		setPractice("startAt", null);
+		setPractice("history", []);
+		setPractice("historyIndex", -1);
+	};
+
 	const rehydrateStores = async () => {
 		await loadAlgsFromDb(db, userId);
 		await loadFsrsFromDb(db, userId);
@@ -265,6 +277,9 @@ export function attachCfTestApi(controls: CfTestApiControls): void {
 		async clearUserData() {
 			await withLocalOnlyWrites(db, syncService, async () => {
 				await db
+					.delete(schema.practiceTimeEntry)
+					.where(eq(schema.practiceTimeEntry.userId, userId));
+				await db
 					.delete(schema.userAlgSelection)
 					.where(eq(schema.userAlgSelection.userId, userId));
 				await db
@@ -278,6 +293,7 @@ export function attachCfTestApi(controls: CfTestApiControls): void {
 					.where(eq(schema.userSettings.userId, userId));
 			});
 			await rehydrateStores();
+			resetTransientPracticeState();
 		},
 
 		pauseAutoSync() {
@@ -289,6 +305,10 @@ export function attachCfTestApi(controls: CfTestApiControls): void {
 		},
 
 		async forceSyncUp() {
+			// Reassert runtime wiring before entering the oosync engine. In dev/test,
+			// Vite can load the E2E API and sync engine through different module
+			// identities unless we explicitly configure the shared runtime here.
+			ensureSyncRuntimeConfigured();
 			await syncService.syncUp();
 		},
 
@@ -332,6 +352,15 @@ export function attachCfTestApi(controls: CfTestApiControls): void {
 		async getCatalogCaseCount() {
 			const result = await db.select({ cnt: count() }).from(schema.algCase);
 			return result[0]?.cnt ?? 0;
+		},
+
+		async hasCatalogCases(caseIds) {
+			if (caseIds.length === 0) return true;
+			const rows = await db
+				.select({ id: schema.algCase.id })
+				.from(schema.algCase)
+				.where(inArray(schema.algCase.id, caseIds));
+			return rows.length === new Set(caseIds).size;
 		},
 
 		async getSelectedCaseIds() {

@@ -8,8 +8,6 @@ const logger: ILogger = {
 	error: console.error.bind(console),
 };
 
-// Minimal hooks for CubeFSRS SQLite client.
-// Expanded in Phase 4 (SQLite migration + views).
 export const browserSqliteHooks: IBrowserSqliteHooks = {
 	logger,
 	onDatabaseReady: async (_db, _context) => {

@@ -15,6 +15,46 @@ import type { TestUser } from "./test-users";
 
 const SEEDED_SETUP_TIMEOUT_MS = 20_000;
 
+async function waitForCfTestApiCondition(
+	page: Page,
+	label: string,
+	timeoutMs: number,
+	check: () => Promise<boolean>,
+): Promise<void> {
+	const deadline = Date.now() + timeoutMs;
+	let lastError: unknown = null;
+
+	while (Date.now() < deadline) {
+		try {
+			if (await check()) {
+				return;
+			}
+		} catch (error) {
+			lastError = error;
+		}
+
+		await page.waitForTimeout(100);
+	}
+
+	const reason = lastError instanceof Error ? ` ${lastError.message}` : "";
+	throw new Error(`[alg-scenarios] Timed out waiting for ${label}.${reason}`);
+}
+
+async function waitForCfTestApi(
+	page: Page,
+	timeoutMs: number,
+): Promise<boolean> {
+	try {
+		await page.waitForFunction(
+			() => !!(window as unknown as { __cfTestApi?: unknown }).__cfTestApi,
+			{ timeout: timeoutMs },
+		);
+		return true;
+	} catch {
+		return false;
+	}
+}
+
 /**
  * Retrieve `window.__cfTestApi` from the page.
  * Throws if the API is not attached (app not running in test mode, or user
@@ -70,6 +110,11 @@ export async function getCfTestApi(page: Page): Promise<CfTestApi> {
 			page.evaluate(() =>
 				window.__cfTestApi?.getCatalogCaseCount(),
 			) as Promise<number>,
+		hasCatalogCases: (caseIds) =>
+			page.evaluate(
+				(ids) => window.__cfTestApi?.hasCatalogCases(ids),
+				caseIds,
+			) as Promise<boolean>,
 		getSelectedCaseIds: () =>
 			page.evaluate(() => window.__cfTestApi?.getSelectedCaseIds()) as Promise<
 				string[]
@@ -119,27 +164,51 @@ export async function setupDeterministicTestParallel(
 		(opts.selectedCaseIds?.length ?? 0) > 0 ||
 		(opts.fsrsCards?.length ?? 0) > 0;
 	if (hasSeeding) {
+		const requiredCatalogCaseIds = Array.from(
+			new Set([
+				...(opts.selectedCaseIds ?? []),
+				...(opts.fsrsCards?.map((card) => card.caseId) ?? []),
+			]),
+		);
+
 		await page.waitForFunction(
 			() => !!(window as unknown as { __cfTestApi?: unknown }).__cfTestApi,
 			{ timeout: SEEDED_SETUP_TIMEOUT_MS },
 		);
 
-		// Seeded scenarios need the local catalog to exist before rehydrating
-		// stores. Otherwise fsrs_card_state rows are inserted, but loadFsrsFromDb()
-		// cannot map case UUIDs back to names yet and the practice queue stays empty.
-		await page.waitForFunction(
-			async () => {
-				const api = (window as unknown as { __cfTestApi?: CfTestApi })
-					.__cfTestApi;
-				if (!api) return false;
-				return (await api.getCatalogCaseCount()) > 0;
-			},
-			{ timeout: SEEDED_SETUP_TIMEOUT_MS },
+		// Seeded scenarios need the exact catalog cases they reference before
+		// rehydrating stores. A merely non-empty catalog is insufficient on a fresh
+		// DB: the initial sync can be mid-page, and loadFsrsFromDb() cannot map a
+		// seeded case UUID back to a case name until that specific alg_case row
+		// exists locally.
+		await waitForCfTestApiCondition(
+			page,
+			"required catalog cases",
+			SEEDED_SETUP_TIMEOUT_MS,
+			() =>
+				page.evaluate(async (caseIds) => {
+					const api = (window as unknown as { __cfTestApi?: CfTestApi })
+						.__cfTestApi;
+					if (!api) return false;
+					return await api.hasCatalogCases(caseIds);
+				}, requiredCatalogCaseIds),
 		);
 
 		// For seeded scenarios, clear any existing user data before applying seeds.
 		// autoCleanupDb already deletes IndexedDB between tests; this ensures any
 		// additional user-scoped state managed by __cfTestApi is reset when seeding.
+		await page.evaluate(() => window.__cfTestApi?.clearUserData());
+	} else {
+		// No-card scenarios must still clear any user-owned rows restored by the
+		// auth snapshot, otherwise Mobile Chrome can intermittently keep stale
+		// practice state and never render the empty-state UI. Wait for the E2E API
+		// and clear deterministically instead of polling the DOM.
+		const hasApi = await waitForCfTestApi(page, SEEDED_SETUP_TIMEOUT_MS);
+		if (!hasApi) {
+			throw new Error(
+				"[alg-scenarios] Timed out waiting for __cfTestApi in no-card setup.",
+			);
+		}
 		await page.evaluate(() => window.__cfTestApi?.clearUserData());
 	}
 	if (opts.selectedCaseIds && opts.selectedCaseIds.length > 0) {
@@ -216,15 +285,22 @@ export async function setupForPracticeTestsParallel(
 	// local-only seeded state restoration. Keep the already-seeded page in place
 	// and wait until the due queue is visible to the practice store.
 	if (cards.length > 0) {
-		await page.waitForFunction(
-			async (expectedCount) => {
+		await waitForCfTestApiCondition(page, "due practice queue", 10_000, () =>
+			page.evaluate(async (expectedCount) => {
 				const api = (window as unknown as { __cfTestApi?: CfTestApi })
 					.__cfTestApi;
 				if (!api) return false;
 				return (await api.getPracticeQueueCount()) >= expectedCount;
-			},
-			cards.length,
-			{ timeout: 10_000 },
+			}, cards.length),
+		);
+	} else {
+		await waitForCfTestApiCondition(page, "empty practice queue", 5_000, () =>
+			page.evaluate(async () => {
+				const api = (window as unknown as { __cfTestApi?: CfTestApi })
+					.__cfTestApi;
+				if (!api) return false;
+				return (await api.getPracticeQueueCount()) === 0;
+			}),
 		);
 	}
 }

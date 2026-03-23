@@ -1,5 +1,5 @@
 import { AuthProvider, type LocalDatabase } from "@rhizome/core";
-import type { User } from "@supabase/supabase-js";
+import type { SupabaseClient, User } from "@supabase/supabase-js";
 import { createSignal, type ParentComponent } from "solid-js";
 import { needsCatalogSeed } from "@/lib/db/catalog-seeder";
 import { closeDb, getDb, initializeDb } from "@/lib/db/client-sqlite";
@@ -42,6 +42,24 @@ const CubeAuthProvider: ParentComponent = (props) => {
 	const [lastSyncMode, setLastSyncMode] = createSignal<
 		"full" | "incremental" | null
 	>(null);
+
+	const createSyncService = (userId: string, client: SupabaseClient) =>
+		new SyncService(getDb()!, {
+			supabase: client,
+			userId,
+			syncIntervalMs: 5000,
+			realtimeEnabled: false,
+			onSyncComplete: (result) => {
+				if (result.errors.length > 0) {
+					console.warn("[CubeAuthProvider] sync errors:", result.errors);
+				}
+				if (syncService) {
+					const ts = syncService.getLastSyncDownTimestamp();
+					if (ts) setLastSyncTimestamp(ts);
+					setLastSyncMode(syncService.getLastSyncMode());
+				}
+			},
+		});
 
 	/** Delegate force sync-down to the module-level SyncService instance. */
 	const forceSyncDown = async (opts?: { full?: boolean }) => {
@@ -100,24 +118,7 @@ const CubeAuthProvider: ParentComponent = (props) => {
 
 					// 2. Create sync service (don't start auto-sync yet) so we can use it
 					//    to seed SQLite on first run before loading stores.
-					const svc = new SyncService(db, {
-						supabase: client,
-						userId: user.id,
-						syncIntervalMs: 5000,
-						realtimeEnabled: false,
-						onSyncComplete: (result) => {
-							if (result.errors.length > 0) {
-								console.warn("[CubeAuthProvider] sync errors:", result.errors);
-							}
-							// Update timestamp signals so DbStatusDropdown reflects latest state
-							if (syncService) {
-								const ts = syncService.getLastSyncDownTimestamp();
-								if (ts) setLastSyncTimestamp(ts);
-								setLastSyncMode(syncService.getLastSyncMode());
-							}
-						},
-					});
-					// Store references early so onSyncComplete can read timestamps.
+					const svc = createSyncService(user.id, client);
 					syncService = svc;
 					stopSync = () => svc.stopAutoSync();
 

@@ -33,6 +33,7 @@ export const algCase = sqliteTable(
 		sortOrder: integer("sort_order").default(0),
 		createdAt: text("created_at").$defaultFn(() => new Date().toISOString()),
 		updatedAt: text("updated_at").$defaultFn(() => new Date().toISOString()),
+		...sqliteSyncColumns,
 	},
 	(t) => [uniqueIndex("alg_case_slug_user_id_key").on(t.slug, t.userId)],
 );
@@ -49,6 +50,7 @@ export const algCategory = sqliteTable(
 		name: text("name").notNull(),
 		sortOrder: integer("sort_order").default(0),
 		createdAt: text("created_at").$defaultFn(() => new Date().toISOString()),
+		...sqliteSyncColumns,
 	},
 	(t) => [uniqueIndex("alg_category_slug_user_id_key").on(t.slug, t.userId)],
 );
@@ -67,6 +69,7 @@ export const algSubset = sqliteTable(
 		userId: text("user_id"),
 		name: text("name").notNull(),
 		sortOrder: integer("sort_order").default(0),
+		...sqliteSyncColumns,
 	},
 	(t) => [uniqueIndex("alg_subset_slug_user_id_key").on(t.slug, t.userId)],
 );
@@ -92,6 +95,7 @@ export const fsrsCardState = sqliteTable(
 		state: integer("state").default(0),
 		lastReview: integer("last_review"),
 		updatedAt: text("updated_at").$defaultFn(() => new Date().toISOString()),
+		...sqliteSyncColumns,
 	},
 	(t) => [
 		uniqueIndex("fsrs_card_state_user_id_case_id_key").on(t.userId, t.caseId),
@@ -109,6 +113,7 @@ export const practiceTimeEntry = sqliteTable("practice_time_entry", {
 		.references(() => algCase.id),
 	ms: integer("ms").notNull(),
 	reviewedAt: text("reviewed_at").$defaultFn(() => new Date().toISOString()),
+	...sqliteSyncColumns,
 });
 
 export const userAlgAnnotation = sqliteTable(
@@ -122,6 +127,7 @@ export const userAlgAnnotation = sqliteTable(
 		mnemonic: text("mnemonic"),
 		notes: text("notes"),
 		updatedAt: text("updated_at").$defaultFn(() => new Date().toISOString()),
+		...sqliteSyncColumns,
 	},
 	(t) => [primaryKey({ columns: [t.userId, t.caseId] })],
 );
@@ -133,6 +139,7 @@ export const userAlgSelection = sqliteTable(
 		caseId: text("case_id")
 			.notNull()
 			.references(() => algCase.id),
+		...sqliteSyncColumns,
 	},
 	(t) => [primaryKey({ columns: [t.userId, t.caseId] })],
 );
@@ -148,4 +155,5 @@ export const userSettings = sqliteTable("user_settings", {
 	fsrsParams: text("fsrs_params"),
 	practiceTimeLimit: integer("practice_time_limit"),
 	updatedAt: text("updated_at").$defaultFn(() => new Date().toISOString()),
+	...sqliteSyncColumns,
 });

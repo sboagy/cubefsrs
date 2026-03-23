@@ -8,14 +8,15 @@
 import {
 	integer,
 	jsonb,
+	PgSchema,
 	pgSchema,
-	pgTable,
 	real,
 	text,
 	uuid,
 } from "drizzle-orm/pg-core";
 
 const cubefsrsSchema = pgSchema("cubefsrs");
+const publicSchema = new PgSchema("public");
 
 export const algCase = cubefsrsSchema.table("alg_case", {
 	id: uuid("id")
@@ -30,6 +31,11 @@ export const algCase = cubefsrsSchema.table("alg_case", {
 	sortOrder: integer("sort_order").default(0),
 	createdAt: text("created_at").$defaultFn(() => new Date().toISOString()),
 	updatedAt: text("updated_at").$defaultFn(() => new Date().toISOString()),
+	syncVersion: integer("sync_version").notNull().default(1),
+	lastModifiedAt: text("last_modified_at")
+		.notNull()
+		.$defaultFn(() => new Date().toISOString()),
+	deviceId: text("device_id"),
 });
 
 export const algCategory = cubefsrsSchema.table("alg_category", {
@@ -42,6 +48,11 @@ export const algCategory = cubefsrsSchema.table("alg_category", {
 	name: text("name").notNull(),
 	sortOrder: integer("sort_order").default(0),
 	createdAt: text("created_at").$defaultFn(() => new Date().toISOString()),
+	syncVersion: integer("sync_version").notNull().default(1),
+	lastModifiedAt: text("last_modified_at")
+		.notNull()
+		.$defaultFn(() => new Date().toISOString()),
+	deviceId: text("device_id"),
 });
 
 export const algSubset = cubefsrsSchema.table("alg_subset", {
@@ -54,6 +65,11 @@ export const algSubset = cubefsrsSchema.table("alg_subset", {
 	userId: uuid("user_id"),
 	name: text("name").notNull(),
 	sortOrder: integer("sort_order").default(0),
+	syncVersion: integer("sync_version").notNull().default(1),
+	lastModifiedAt: text("last_modified_at")
+		.notNull()
+		.$defaultFn(() => new Date().toISOString()),
+	deviceId: text("device_id"),
 });
 
 export const fsrsCardState = cubefsrsSchema.table("fsrs_card_state", {
@@ -73,6 +89,11 @@ export const fsrsCardState = cubefsrsSchema.table("fsrs_card_state", {
 	state: integer("state").default(0),
 	lastReview: integer("last_review"),
 	updatedAt: text("updated_at").$defaultFn(() => new Date().toISOString()),
+	syncVersion: integer("sync_version").notNull().default(1),
+	lastModifiedAt: text("last_modified_at")
+		.notNull()
+		.$defaultFn(() => new Date().toISOString()),
+	deviceId: text("device_id"),
 });
 
 export const practiceTimeEntry = cubefsrsSchema.table("practice_time_entry", {
@@ -84,6 +105,11 @@ export const practiceTimeEntry = cubefsrsSchema.table("practice_time_entry", {
 	caseId: uuid("case_id").notNull(),
 	ms: integer("ms").notNull(),
 	reviewedAt: text("reviewed_at").$defaultFn(() => new Date().toISOString()),
+	syncVersion: integer("sync_version").notNull().default(1),
+	lastModifiedAt: text("last_modified_at")
+		.notNull()
+		.$defaultFn(() => new Date().toISOString()),
+	deviceId: text("device_id"),
 });
 
 export const userAlgAnnotation = cubefsrsSchema.table("user_alg_annotation", {
@@ -93,11 +119,21 @@ export const userAlgAnnotation = cubefsrsSchema.table("user_alg_annotation", {
 	mnemonic: text("mnemonic"),
 	notes: text("notes"),
 	updatedAt: text("updated_at").$defaultFn(() => new Date().toISOString()),
+	syncVersion: integer("sync_version").notNull().default(1),
+	lastModifiedAt: text("last_modified_at")
+		.notNull()
+		.$defaultFn(() => new Date().toISOString()),
+	deviceId: text("device_id"),
 });
 
 export const userAlgSelection = cubefsrsSchema.table("user_alg_selection", {
 	userId: uuid("user_id").notNull(),
 	caseId: uuid("case_id").notNull(),
+	syncVersion: integer("sync_version").notNull().default(1),
+	lastModifiedAt: text("last_modified_at")
+		.notNull()
+		.$defaultFn(() => new Date().toISOString()),
+	deviceId: text("device_id"),
 });
 
 export const userSettings = cubefsrsSchema.table("user_settings", {
@@ -109,10 +145,15 @@ export const userSettings = cubefsrsSchema.table("user_settings", {
 	fsrsParams: jsonb("fsrs_params"),
 	practiceTimeLimit: integer("practice_time_limit"),
 	updatedAt: text("updated_at").$defaultFn(() => new Date().toISOString()),
+	syncVersion: integer("sync_version").notNull().default(1),
+	lastModifiedAt: text("last_modified_at")
+		.notNull()
+		.$defaultFn(() => new Date().toISOString()),
+	deviceId: text("device_id"),
 });
 
 // sync infrastructure table (public schema — required by oosync worker)
-export const syncChangeLog = pgTable("sync_change_log", {
+export const syncChangeLog = publicSchema.table("sync_change_log", {
 	tableName: text("table_name").notNull().primaryKey(),
 	changedAt: text("changed_at").notNull(),
 });

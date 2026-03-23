@@ -114,6 +114,10 @@ export const WORKER_SYNC_CONFIG = {
 							prop: "sortOrder",
 							kind: "int",
 						},
+						{
+							prop: "syncVersion",
+							kind: "int",
+						},
 					],
 				},
 				bindAuthUserIdProps: ["user_id"],
@@ -126,6 +130,10 @@ export const WORKER_SYNC_CONFIG = {
 							prop: "sortOrder",
 							kind: "int",
 						},
+						{
+							prop: "syncVersion",
+							kind: "int",
+						},
 					],
 				},
 				bindAuthUserIdProps: ["user_id"],
@@ -136,6 +144,10 @@ export const WORKER_SYNC_CONFIG = {
 					coerceNumericProps: [
 						{
 							prop: "sortOrder",
+							kind: "int",
+						},
+						{
+							prop: "syncVersion",
 							kind: "int",
 						},
 					],
@@ -182,6 +194,10 @@ export const WORKER_SYNC_CONFIG = {
 							prop: "state",
 							kind: "int",
 						},
+						{
+							prop: "syncVersion",
+							kind: "int",
+						},
 					],
 				},
 				bindAuthUserIdProps: ["user_id"],
@@ -194,16 +210,36 @@ export const WORKER_SYNC_CONFIG = {
 							prop: "ms",
 							kind: "int",
 						},
+						{
+							prop: "syncVersion",
+							kind: "int",
+						},
 					],
 				},
 				bindAuthUserIdProps: ["user_id"],
 			},
 			user_alg_annotation: {
 				denyDelete: true,
+				sanitize: {
+					coerceNumericProps: [
+						{
+							prop: "syncVersion",
+							kind: "int",
+						},
+					],
+				},
 				bindAuthUserIdProps: ["user_id"],
 			},
 			user_alg_selection: {
 				denyDelete: true,
+				sanitize: {
+					coerceNumericProps: [
+						{
+							prop: "syncVersion",
+							kind: "int",
+						},
+					],
+				},
 				bindAuthUserIdProps: ["user_id"],
 			},
 			user_settings: {
@@ -212,6 +248,10 @@ export const WORKER_SYNC_CONFIG = {
 					coerceNumericProps: [
 						{
 							prop: "practiceTimeLimit",
+							kind: "int",
+						},
+						{
+							prop: "syncVersion",
 							kind: "int",
 						},
 					],

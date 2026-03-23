@@ -62,6 +62,7 @@ schema_paths = []
 # If enabled, seeds the database after migrations during a db reset.
 enabled = true
 # Specifies an ordered list of seed files to load during db reset.
+# Keep this app-scoped. Shared auth bootstrap is owned by rhizome.
 # Supports glob patterns relative to supabase directory: "./seeds/*.sql"
 sql_paths = ["./seeds/01_global_catalog.sql"]
 

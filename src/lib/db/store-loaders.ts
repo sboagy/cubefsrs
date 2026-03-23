@@ -9,14 +9,29 @@ import { eq, isNull, or } from "drizzle-orm";
 import type { SqliteDatabase } from "@/lib/db/client-sqlite";
 import { schema } from "@/lib/db/client-sqlite";
 import type { FSRSState, FsrsUserParams } from "@/services/scheduler/fsrs";
-import { getFsrsConfig } from "@/services/scheduler/fsrs";
+import { getFsrsConfig, pickNextDue } from "@/services/scheduler/fsrs";
 import { setAlgs } from "@/stores/algs";
-import { refreshQueue, setFsrs } from "@/stores/fsrs";
+import { setFsrs } from "@/stores/fsrs";
 import { setPractice } from "@/stores/practice";
 import type { AlgCase, AlgCategory } from "@/types/algs";
 
 // Valid values for the practice order mode (mirrors PracticeState["orderMode"])
 type OrderMode = "sequential" | "random" | "fsrs";
+
+function buildFsrsQueue(states: Record<string, FSRSState>): string[] {
+	const now = Date.now();
+	const due = Object.entries(states)
+		.filter(([, state]) => state.due <= now)
+		.map(([id]) => id);
+
+	if (due.length > 0) {
+		return due;
+	}
+
+	const next = pickNextDue(states, now);
+	return next ? [next] : [];
+}
+
 /**
  * Load the full catalog + user selections + annotations from SQLite into
  * the algs store.
@@ -140,6 +155,10 @@ export async function loadAlgsFromDb(
 		// DB has no catalog yet (sync hasn't completed) — leave stores empty.
 		// The first forceFullSyncDown in onSignIn will populate SQLite and
 		// a follow-up loadAlgsFromDb call will fill the stores.
+		setAlgs("catalog", { categories: [] });
+		setAlgs("cases", {});
+		setAlgs("selectedIds", []);
+		setAlgs("currentCategory", "");
 		console.warn(
 			"[store-loaders] loadAlgsFromDb: catalog is empty; sync may not have completed yet",
 		);
@@ -200,10 +219,11 @@ export async function loadFsrsFromDb(
 			lastReview: row.lastReview ?? 0,
 		} as FSRSState;
 	}
+	const queue = buildFsrsQueue(states);
 
 	setFsrs("params", params);
 	setFsrs("states", states);
-	refreshQueue();
+	setFsrs("queue", queue);
 }
 
 /**

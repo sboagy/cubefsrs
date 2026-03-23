@@ -15,7 +15,7 @@ export default function DeviceInfoGrid(props: Props) {
 			<div class="text-gray-500">Gyro</div>
 			<div>{device.info.supportsGyro ? "Yes" : "—"}</div>
 			<div class="text-gray-500">Battery</div>
-			<div>{device.info.battery != null ? device.info.battery + "%" : "—"}</div>
+			<div>{device.info.battery != null ? `${device.info.battery}%` : "—"}</div>
 			<div class="text-gray-500">Quaternion</div>
 			<div>
 				<Show when={device.quaternion} fallback={<span>—</span>}>

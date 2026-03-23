@@ -11,12 +11,14 @@ export default function SaveActions(props: Props) {
 		<div class="flex justify-end items-center gap-3">
 			<span class="text-sm text-gray-500">{props.children ?? "Ready"}</span>
 			<button
+				type="button"
 				class="px-4 py-2 rounded bg-gray-200 dark:bg-gray-800"
 				onClick={props.onCancel}
 			>
 				Cancel
 			</button>
 			<button
+				type="button"
 				class="px-4 py-2 rounded bg-blue-600 text-white"
 				onClick={props.onSave}
 			>

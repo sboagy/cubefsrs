@@ -15,7 +15,7 @@ export type {
 	SyncOperation,
 	SyncResult,
 	SyncStatus,
-} from "oosync/sync";
+} from "@oosync/sync";
 
 export {
 	clearOldOutboxItems,
@@ -28,6 +28,6 @@ export {
 	SyncInProgressError,
 	SyncService,
 	startSyncWorker,
-} from "oosync/sync";
+} from "@oosync/sync";
 
 export { ensureSyncRuntimeConfigured } from "./runtime-config";
