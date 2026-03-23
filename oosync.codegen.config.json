@@ -20,9 +20,12 @@
 		"outboxBackupKeyPrefix": "cubefsrs-outbox-backup",
 		"lastSyncTimestampKeyPrefix": "CF_LAST_SYNC_TIMESTAMP",
 		"schemaVersion": "1.0.0",
-		"databaseVersion": 1,
+		"databaseVersion": 2,
 		"migrationDirectory": "drizzle/migrations/sqlite",
-		"migrationFiles": ["/drizzle/migrations/sqlite/0000_sticky_riptide.sql"],
+		"migrationFiles": [
+			"/drizzle/migrations/sqlite/0000_sticky_riptide.sql",
+			"/drizzle/migrations/sqlite/0001_fix_catalog_null_unique.sql"
+		],
 		"forceResetQueryParams": [
 			{ "key": "reset", "value": "true" },
 			{ "key": "migrate", "value": "uuid" }

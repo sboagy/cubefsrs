@@ -6,15 +6,15 @@
  */
 
 import { createBrowserSyncRuntime } from "oosync/runtime/browser-sqlite";
-import { type SyncRuntime, setSyncRuntime } from "oosync/sync";
+import { type SyncRuntime, setSyncRuntime } from "@oosync/sync";
 import * as localSchema from "../../../drizzle/schema-sqlite";
+import { browserSqliteClient } from "../db/client-sqlite";
 import {
 	SYNCABLE_TABLES,
 	TABLE_REGISTRY,
 	TABLE_SYNC_ORDER,
 	TABLE_TO_SCHEMA_KEY,
 } from "../../../shared/table-meta";
-import { browserSqliteClient } from "../db/client-sqlite";
 
 let configured = false;
 
