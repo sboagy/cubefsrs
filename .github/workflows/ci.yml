@@ -348,6 +348,16 @@ jobs:
           path: all-blob-reports
           merge-multiple: true
 
+      - name: Detect blob reports
+        id: blob-reports
+        run: |
+          if [ -d all-blob-reports ] && find all-blob-reports -type f -name '*.zip' | grep -q .; then
+            echo "found=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "found=false" >> "$GITHUB_OUTPUT"
+            echo "No Playwright blob reports were downloaded; skipping HTML merge."
+          fi
+
       - name: Download Playwright logs
         uses: actions/download-artifact@v6
         with:
@@ -369,9 +379,11 @@ jobs:
           retention-days: 7
 
       - name: Merge into HTML Report
+        if: steps.blob-reports.outputs.found == 'true'
         run: npx playwright merge-reports --reporter html ./all-blob-reports
 
       - name: Upload merged HTML report
+        if: steps.blob-reports.outputs.found == 'true'
         uses: actions/upload-artifact@v6
         with:
           name: playwright-report
