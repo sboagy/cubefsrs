@@ -14,7 +14,7 @@
 		"typecheck": "tsc --noEmit -p tsconfig.json",
 		"lint": "biome lint .",
 		"format": "biome format .",
-		"format:write": "biome format --write .",
+		"format:write": "biome format --write .  && biome check --write src e2e tests worker",
 		"codegen:schema": "op run --env-file=\".env.local.template\" -- tsx node_modules/oosync/src/codegen-schema.ts --schema=cubefsrs --lenient",
 		"codegen:schema:check": "tsx node_modules/oosync/src/codegen-schema.ts --schema=cubefsrs --lenient --check",
 		"refresh-to-catalog-seed": "op run --env-file=\".env.local.template\" -- bash supabase/scripts/refresh_catalog_seed.sh",

@@ -1,4 +1,4 @@
-// @ts-ignore – package.json import resolved by Vite
+// @ts-expect-error – package.json import resolved by Vite
 import pkg from "../../package.json";
 
 export default function BuildView() {

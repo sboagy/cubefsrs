@@ -6,7 +6,7 @@ export function getInverseMove(move?: string): string {
 	if (!trimmed) return "";
 	if (trimmed.endsWith("2")) return trimmed; // double turns are self-inverse
 	if (trimmed.endsWith("'")) return trimmed.slice(0, -1);
-	return trimmed + "'";
+	return `${trimmed}'`;
 }
 
 // Very lightweight opposite mapping used in legacy logic for specific heuristic cases

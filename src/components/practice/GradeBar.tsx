@@ -44,6 +44,7 @@ export default function GradeBar(props: Props) {
 				<For each={buttons}>
 					{(b) => (
 						<button
+							type="button"
 							class={`px-3 py-2 rounded text-white text-sm ${b.cls}`}
 							disabled={props.disabled}
 							onClick={() => props.onGrade(b.rating)}

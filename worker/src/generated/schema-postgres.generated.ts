@@ -6,9 +6,9 @@
  */
 
 import {
-	PgSchema,
 	integer,
 	jsonb,
+	PgSchema,
 	pgSchema,
 	real,
 	text,

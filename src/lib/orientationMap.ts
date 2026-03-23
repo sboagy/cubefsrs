@@ -63,7 +63,7 @@ export function mapTokenByZ2(token: string): string {
 	// Rw style (two chars, second w/W)
 	if (/^[RUFDLB][wW]$/.test(base)) {
 		const mapped = mapFace(base[0]);
-		return mapped + "w" + suf;
+		return `${mapped}w${suf}`;
 	}
 
 	// Single face

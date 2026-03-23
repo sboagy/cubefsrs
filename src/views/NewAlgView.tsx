@@ -1,7 +1,7 @@
-import { createSignal } from "solid-js";
 import { useNavigate, useSearchParams } from "@solidjs/router";
-import { algs, createCase } from "@/stores/algs";
+import { createSignal } from "solid-js";
 import SaveActions from "@/components/edit/SaveActions";
+import { algs, createCase } from "@/stores/algs";
 
 export default function NewAlgView() {
 	const navigate = useNavigate();
