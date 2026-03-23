@@ -22,7 +22,7 @@
 		"unlink:local": "yalc remove --all && npm install && cd worker && yalc remove --all && npm install",
 		"test": "FORCE_COLOR=1 op run --env-file=\".env.local.template\" -- vitest run",
 		"test:unit": "FORCE_COLOR=1 op run --env-file=\".env.local.template\" -- vitest run tests/",
-		"test:e2e": "FORCE_COLOR=1 op run --env-file=\".env.local.template\" -- playwright test --reporter=list",
+		"test:e2e": "FORCE_COLOR=1 op run --env-file=\".env.local.template\" -- playwright test",
 		"test:e2e:headed": "FORCE_COLOR=1 op run --env-file=\".env.local.template\" -- playwright test --headed",
 		"test:e2e:debug": "FORCE_COLOR=1 op run --env-file=\".env.local.template\" -- playwright test --debug",
 		"test:e2e:report": "FORCE_COLOR=1 op run --env-file=\".env.local.template\" -- playwright test --reporter=html",
