@@ -85,6 +85,9 @@ export interface CfTestApi {
 	/** Resume the background auto-sync loop. */
 	resumeAutoSync(): void;
 
+	/** Explicitly trigger a sync-down from the worker into local SQLite. */
+	forceSyncDown(opts?: { full?: boolean }): Promise<void>;
+
 	/**
 	 * Explicitly trigger a sync-up (push local outbox to the worker).
 	 * Use in sync tests instead of relying on the periodic timer.
@@ -113,6 +116,13 @@ export interface CfTestApi {
 
 	/** Return the `caseId` values currently in `user_alg_selection`. */
 	getSelectedCaseIds(): Promise<string[]>;
+
+	/** Return the current FSRS row for a case, or null when it is absent. */
+	getFsrsCardState(caseId: string): Promise<{
+		reps: number | null;
+		state: number | null;
+		due: number;
+	} | null>;
 }
 
 // ---------------------------------------------------------------------------
@@ -304,6 +314,16 @@ export function attachCfTestApi(controls: CfTestApiControls): void {
 			syncService.startAutoSync();
 		},
 
+		async forceSyncDown(opts) {
+			ensureSyncRuntimeConfigured();
+			if (opts?.full) {
+				await syncService.forceFullSyncDown();
+			} else {
+				await syncService.syncDown();
+			}
+			await rehydrateStores();
+		},
+
 		async forceSyncUp() {
 			// Reassert runtime wiring before entering the oosync engine. In dev/test,
 			// Vite can load the E2E API and sync engine through different module
@@ -369,6 +389,24 @@ export function attachCfTestApi(controls: CfTestApiControls): void {
 				.from(schema.userAlgSelection)
 				.where(eq(schema.userAlgSelection.userId, userId));
 			return rows.map((r) => r.caseId);
+		},
+
+		async getFsrsCardState(caseId) {
+			const rows = await db
+				.select({
+					reps: schema.fsrsCardState.reps,
+					state: schema.fsrsCardState.state,
+					due: schema.fsrsCardState.due,
+				})
+				.from(schema.fsrsCardState)
+				.where(
+					and(
+						eq(schema.fsrsCardState.userId, userId),
+						eq(schema.fsrsCardState.caseId, caseId),
+					),
+				)
+				.limit(1);
+			return rows[0] ?? null;
 		},
 	};
 

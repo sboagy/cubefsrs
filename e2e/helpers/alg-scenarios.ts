@@ -92,6 +92,10 @@ export async function getCfTestApi(page: Page): Promise<CfTestApi> {
 			page.evaluate(() => window.__cfTestApi?.pauseAutoSync()),
 		resumeAutoSync: () =>
 			page.evaluate(() => window.__cfTestApi?.resumeAutoSync()),
+		forceSyncDown: (opts?: { full?: boolean }) =>
+			page.evaluate((o) => window.__cfTestApi?.forceSyncDown(o), opts) as Promise<
+				void
+			>,
 		forceSyncUp: () => page.evaluate(() => window.__cfTestApi?.forceSyncUp()),
 		waitForSyncIdle: (timeoutMs?: number) =>
 			page.evaluate(
@@ -115,6 +119,15 @@ export async function getCfTestApi(page: Page): Promise<CfTestApi> {
 				(ids) => window.__cfTestApi?.hasCatalogCases(ids),
 				caseIds,
 			) as Promise<boolean>,
+		getFsrsCardState: (caseId: string) =>
+			page.evaluate(
+				(id) => window.__cfTestApi?.getFsrsCardState(id),
+				caseId,
+			) as Promise<{
+				reps: number | null;
+				state: number | null;
+				due: number;
+			} | null>,
 		getSelectedCaseIds: () =>
 			page.evaluate(() => window.__cfTestApi?.getSelectedCaseIds()) as Promise<
 				string[]
