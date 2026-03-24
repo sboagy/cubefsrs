@@ -37,7 +37,7 @@ cfTest.describe("sync-001: basic push", () => {
 	});
 
 	cfTest(
-		"grading a card populates the outbox, forceSyncUp drains it",
+		"grading a card survives a push plus full pull round-trip",
 		async ({ page }) => {
 			const cfPage = new CubeFSRSPage(page);
 			const api = await getCfTestApi(page);
@@ -53,10 +53,10 @@ cfTest.describe("sync-001: basic push", () => {
 			await expect(cfPage.gradeBarGood).toBeVisible({ timeout: 10_000 });
 			await cfPage.gradeBarGood.click();
 
-			// Wait for the review action to be written to the local outbox.
-			await page.waitForTimeout(500);
-
 			// Verify at least 1 outbox row was added (the grade mutation is queued).
+			await expect
+				.poll(() => api.getSyncOutboxCount(), { timeout: 10_000 })
+				.toBeGreaterThan(0);
 			const outboxAfterGrade = await api.getSyncOutboxCount();
 			expect(outboxAfterGrade).toBeGreaterThan(0);
 
@@ -66,6 +66,26 @@ cfTest.describe("sync-001: basic push", () => {
 
 			const outboxAfterSync = await api.getSyncOutboxCount();
 			expect(outboxAfterSync).toBe(0);
+
+			const syncedFsrsCard = await api.getFsrsCardState(
+				CATALOG_CASE_PLL_T_PERM_ID,
+			);
+			expect(syncedFsrsCard).not.toBeNull();
+			expect(syncedFsrsCard?.reps ?? 0).toBeGreaterThan(0);
+
+			// Phase 4: Prove the worker persisted the change by clearing local user data
+			// and pulling it back from the server.
+			await api.clearUserData();
+			expect(await api.getFsrsCardState(CATALOG_CASE_PLL_T_PERM_ID)).toBeNull();
+
+			await api.forceSyncDown({ full: true });
+			await api.waitForSyncIdle(15_000);
+
+			const restoredFsrsCard = await api.getFsrsCardState(
+				CATALOG_CASE_PLL_T_PERM_ID,
+			);
+			expect(restoredFsrsCard).not.toBeNull();
+			expect(restoredFsrsCard?.reps ?? 0).toBeGreaterThan(0);
 
 			// Resume auto-sync before teardown.
 			await api.resumeAutoSync();

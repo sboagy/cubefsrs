@@ -5,9 +5,9 @@
 	"type": "module",
 	"scripts": {
 		"deploy": "FORCE_COLOR=1 op run --env-file=\"../.env.local.template\" -- wrangler deploy",
-		"dev": "FORCE_COLOR=1 op run --env-file=\"../.env.local.template\" -- wrangler dev",
-		"dev:local": "WRANGLER_SEND_METRICS=false DO_NOT_TRACK=1 FORCE_COLOR=1 op run --env-file=\"../.env.local.template\" -- wrangler dev --local",
-		"start": "FORCE_COLOR=1 op run --env-file=\"../.env.local.template\" -- wrangler dev"
+		"dev": "FORCE_COLOR=1 op run --env-file=\"../.env.local.template\" -- node ./scripts/run-wrangler-dev.mjs",
+		"dev:local": "WRANGLER_SEND_METRICS=false DO_NOT_TRACK=1 FORCE_COLOR=1 op run --env-file=\"../.env.local.template\" -- node ./scripts/run-wrangler-dev.mjs --local",
+		"start": "FORCE_COLOR=1 op run --env-file=\"../.env.local.template\" -- node ./scripts/run-wrangler-dev.mjs"
 	},
 	"devDependencies": {
 		"@cloudflare/workers-types": "^4.20240529.0",
