@@ -10,7 +10,7 @@ port = 8797
 # Manages connection pooling to prevent "too many connections" errors
 [[hyperdrive]]
 binding = "HYPERDRIVE"
-id = "placeholder-update-before-deploy"
+id = "e7f5143597204a649319d5312b3355f3"
 localConnectionString = "postgresql://postgres:postgres@127.0.0.1:54322/postgres"
 
 [vars]
