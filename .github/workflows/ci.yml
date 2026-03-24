@@ -1,6 +1,6 @@
 # yaml-language-server: $schema=https://json.schemastore.org/github-workflow.json
 # Environment secrets (cubefsrs_ci_env): OP_SERVICE_ACCOUNT_TOKEN, CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID, SUPABASE_JWT_SECRET, VITE_WORKER_URL
-# All Supabase/app secrets are injected at runtime via `op run --env-file=".env.local.template"` using the OP_SERVICE_ACCOUNT_TOKEN.
+# Pages builds inject app secrets via `op run --env-file=".env.prod.template"`; local scripts continue to use `.env.local.template`.
 # yamllint disable rule:line-length
 
 name: CI - Tests
@@ -425,8 +425,8 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      # Build uses `op run` wrappers in package.json to inject VITE_ secrets
-      # from the rhizome vault at build time.
+      # Build uses the production env template so deployed bundles do not
+      # inherit local worker URLs from the local dev template.
       - name: Build Application
         run: npm run build
 
