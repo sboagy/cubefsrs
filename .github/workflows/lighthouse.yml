@@ -44,8 +44,8 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      # Build and preview both flow through package.json scripts, which in turn
-      # use `op run --env-file=".env.local.template"` to inject runtime config.
+      # Build flows through the production template so the analyzed bundle
+      # matches deployed settings instead of local worker configuration.
       - name: Build Application
         run: npm run build
 
