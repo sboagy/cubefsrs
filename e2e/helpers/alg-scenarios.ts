@@ -93,9 +93,10 @@ export async function getCfTestApi(page: Page): Promise<CfTestApi> {
 		resumeAutoSync: () =>
 			page.evaluate(() => window.__cfTestApi?.resumeAutoSync()),
 		forceSyncDown: (opts?: { full?: boolean }) =>
-			page.evaluate((o) => window.__cfTestApi?.forceSyncDown(o), opts) as Promise<
-				void
-			>,
+			page.evaluate(
+				(o) => window.__cfTestApi?.forceSyncDown(o),
+				opts,
+			) as Promise<void>,
 		forceSyncUp: () => page.evaluate(() => window.__cfTestApi?.forceSyncUp()),
 		waitForSyncIdle: (timeoutMs?: number) =>
 			page.evaluate(
