@@ -14,8 +14,8 @@ id = "e7f5143597204a649319d5312b3355f3"
 localConnectionString = "postgresql://postgres:postgres@127.0.0.1:54322/postgres"
 
 [vars]
-# Production/default binding. Local npm scripts override SUPABASE_URL with
-# `wrangler dev --var` so the worker matches the 1Password-backed local app env.
+# Production worker runtime config. Keep this aligned with the production
+# Supabase project used by the app build env.
 SUPABASE_URL = "https://pjxuonglsvouttihjven.supabase.co"
 # SUPABASE_URL = "http://127.0.0.1:54321"
 # SUPABASE_JWT_SECRET should be set via `wrangler secret put SUPABASE_JWT_SECRET`
