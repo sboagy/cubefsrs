@@ -167,6 +167,19 @@ jobs:
           supabase stop --no-backup 2>/dev/null || true
           docker network prune -f 2>/dev/null || true
 
+      # CubeFSRS CI does not exercise Supabase Edge Functions, and the shared
+      # local stack can intermittently fail its health checks on edge_runtime
+      # with a blank 502 during `supabase start`. Disable edge_runtime in the
+      # checked-out rhizome config for CI to keep shard startup deterministic.
+      - name: Disable Supabase Edge Runtime For CI
+        working-directory: rhizome
+        run: |
+          if grep -q '^\[edge_runtime\]' supabase/config.toml; then
+            perl -0pi -e 's/\[edge_runtime\]\s*\nenabled = true/[edge_runtime]\nenabled = false/' supabase/config.toml
+          else
+            printf '\n[edge_runtime]\nenabled = false\n' >> supabase/config.toml
+          fi
+
       # Start Supabase from the rhizome directory (shared config).
       #
       # PostgREST is configured to expose the cubefsrs schema, but that schema
