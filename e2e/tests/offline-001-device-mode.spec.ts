@@ -35,13 +35,18 @@ test.describe("offline-001: device-only mode", () => {
 		await expect(page).toHaveURL(/\/$/, { timeout: 15_000 });
 		await expect(cfPage.practiceLink).toBeVisible({ timeout: 10_000 });
 
+		// Wait for the practice view to finish rendering before taking the
+		// browser offline. Anonymous users usually land in the empty state,
+		// but seeded local data can also show an algorithm card.
+		await cfPage.waitForPracticeContent();
+
 		// Simulate going offline.
 		await goOffline(page);
 
 		// App should still render the practice view after going offline.
 		// The empty-state or an algorithm display should be visible (depends on
-		// whether any FSRS cards were seeded — anonymous users start with none).
-		await expect(cfPage.emptyStateMessage).toBeVisible({ timeout: 5_000 });
+		// whether any FSRS cards were seeded — anonymous users usually start with none).
+		await cfPage.waitForPracticeContent();
 
 		// Restore network before test cleanup.
 		await goOnline(page);
