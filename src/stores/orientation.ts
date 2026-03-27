@@ -15,11 +15,4 @@ export { orientationMode };
 export function setOrientationMode(mode: OrientationMode) {
 	safeSet("cubefsrs.orientationMode", mode);
 	setOrientationModeSignal(mode);
-	// Expose to non-reactive service layer used by tracking
-	window._orientationMode = mode;
-}
-
-// Initialise global on load
-if (typeof window !== "undefined") {
-	window._orientationMode = stored;
 }

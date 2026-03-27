@@ -33,6 +33,7 @@ import {
 	goNext,
 	goPrev,
 	practice,
+	resetRun,
 	startPractice,
 	stopPractice,
 	visit,
@@ -73,12 +74,22 @@ export default function PracticeView() {
 	const [trainNonce, setTrainNonce] = createSignal(0);
 	const [_auf, setAuf] = createSignal("");
 	const [runningMs, setRunningMs] = createSignal(0);
+	let lastAufCaseId: string | null = null;
 	let ticker: ReturnType<typeof setInterval> | null = null;
 
 	const baseAlg = createMemo(() => {
 		const id = practice.currentId;
 		if (!id) return "";
 		return (algs.cases[id]?.alg ?? "").trim();
+	});
+
+	// Prepend AUF prefix to the base algorithm when randomAUF is enabled.
+	// This memo is the canonical algorithm used for both tracking and CubeViewer.
+	const aufAlg = createMemo(() => {
+		const auf = _auf();
+		const base = baseAlg();
+		if (!auf || !algs.options.randomAUF) return base;
+		return `${auf} ${base}`.trim();
 	});
 
 	const emptyState = createMemo(
@@ -93,6 +104,18 @@ export default function PracticeView() {
 	const showGradeBar = createMemo(
 		() => practice.orderMode === "fsrs" && !!practice.currentId,
 	);
+
+	const isSolved = createMemo(
+		() =>
+			tracking.userAlg.length > 0 &&
+			tracking.badAlg.length === 0 &&
+			tracking.currentMoveIndex >= tracking.userAlg.length - 1,
+	);
+
+	const timerDisplay = createMemo(() => {
+		if (practice.running) return `${(runningMs() / 1000).toFixed(2)}s`;
+		return tracking.currentMoveIndex === -1 ? "0.00s" : lastMsDisplay();
+	});
 
 	function pickNextId(): string | null {
 		if (practice.orderMode === "fsrs") {
@@ -166,16 +189,10 @@ export default function PracticeView() {
 	}
 
 	function train() {
-		if (!practice.running) {
-			if (algs.options.randomAUF) setAuf(pickRandomAuf());
-			startPractice();
-			setTrainNonce((n) => n + 1);
-		} else {
-			stopPractice();
-			if (algs.options.randomAUF) setAuf(pickRandomAuf());
-			setTrainNonce((n) => n + 1);
-		}
+		setTrainNonce((n) => n + 1);
 		resetTracking();
+		resetRun();
+		setRunningMs(0);
 	}
 
 	function editCurrent() {
@@ -209,20 +226,52 @@ export default function PracticeView() {
 		if (moveAt == null) return;
 		if (!mv) return;
 		untrack(() => {
+			if (!practice.running && practice.currentId && !isSolved()) {
+				setRunningMs(0);
+				startPractice();
+			}
+			// Single translation point: hardware move → logical move (z2 for yellow-up)
 			const logical =
 				orientationMode() === "yellow-up" ? mapTokenByZ2(mv.trim()) : mv.trim();
 			ingestMove(logical);
 		});
 	});
 
-	// Keep tracking algorithm in sync when case changes
 	createEffect(() => {
-		const alg = baseAlg();
+		if (!practice.running) return;
+		if (!isSolved()) return;
+		untrack(() => stopPractice());
+	});
+
+	// Keep tracking algorithm in sync when case changes (including AUF prefix)
+	createEffect(() => {
+		const alg = aufAlg();
 		if (!alg) return;
 		// This effect also handles the initial mount. Re-applying the same algorithm
 		// after a move would reset tracking back to the first letter.
 		if (alg === untrack(() => tracking.rawAlg)) return;
 		setAlgorithm(alg);
+	});
+
+	createEffect(() => {
+		const currentId = practice.currentId;
+		const randomAufEnabled = algs.options.randomAUF;
+
+		if (!currentId) {
+			lastAufCaseId = null;
+			if (_auf()) setAuf("");
+			return;
+		}
+
+		if (!randomAufEnabled) {
+			lastAufCaseId = null;
+			if (_auf()) setAuf("");
+			return;
+		}
+
+		if (lastAufCaseId === currentId) return;
+		lastAufCaseId = currentId;
+		setAuf(pickRandomAuf());
 	});
 
 	createEffect(() => {
@@ -277,16 +326,14 @@ export default function PracticeView() {
 				</div>
 
 				<div class="flex flex-col items-center">
-					<CubeViewer alg={baseAlg()} trainNonce={trainNonce()} />
+					<CubeViewer alg={aufAlg()} trainNonce={trainNonce()} />
 					<Show when={emptyState()}>
 						<div class="mt-2 text-sm text-gray-500">No Cases Scheduled</div>
 					</Show>
 				</div>
 
 				<div class="text-4xl font-mono tabular-nums text-center">
-					<Show when={practice.running} fallback={<div>{lastMsDisplay()}</div>}>
-						<div>{(runningMs() / 1000).toFixed(2)}s</div>
-					</Show>
+					<div>{timerDisplay()}</div>
 				</div>
 			</div>
 

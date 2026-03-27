@@ -147,12 +147,9 @@ export function stopPractice() {
 	setPractice("startAt", null);
 }
 
-export function restartRun() {
-	if (!practice.running) {
-		startPractice();
-		return;
-	}
-	setPractice("startAt", Date.now());
+export function resetRun() {
+	setPractice("running", false);
+	setPractice("startAt", null);
 }
 
 export function cycleVisibility() {

@@ -6,18 +6,11 @@ import { Alg } from "cubing/alg";
 import { cube3x3x3 } from "cubing/puzzles";
 import { createStore } from "solid-js/store";
 import { getInverseMove, getOppositeMove } from "@/lib/legacyMoveHelpers";
-import { mapTokenByZ2 } from "@/lib/orientationMap";
 import { algs } from "@/stores/algs";
 
 // Minimal shape for the kpuzzle object we need (duck-typed)
 interface KPuzzlePatternProvider {
 	defaultPattern?: () => PatternLike;
-}
-
-declare global {
-	interface Window {
-		_orientationMode?: string;
-	}
 }
 
 interface PatternLike {
@@ -65,6 +58,29 @@ interface DoubleBuffer {
 	face: string;
 	first: string;
 	wantsPrime: boolean;
+}
+
+function inferSliceQuarterTurn(
+	axis: "M" | "E" | "S",
+	firstMove: string,
+	secondMove: string,
+): string | null {
+	const first = firstMove.replace(/[()]/g, "");
+	const second = secondMove.replace(/[()]/g, "");
+	const slicePairs: Record<
+		"M" | "E" | "S",
+		{ plain: [string, string]; prime: [string, string] }
+	> = {
+		M: { plain: ["R", "L'"], prime: ["R'", "L"] },
+		E: { plain: ["U'", "D"], prime: ["U", "D'"] },
+		S: { plain: ["F", "B'"], prime: ["F'", "B"] },
+	};
+	const matchesPair = ([a, b]: [string, string]) =>
+		(first === a && second === b) || (first === b && second === a);
+	const pairs = slicePairs[axis];
+	if (matchesPair(pairs.plain)) return axis;
+	if (matchesPair(pairs.prime)) return `${axis}'`;
+	return null;
 }
 
 // ---- Module-level non-reactive heavy objects (equivalent to markRaw in Vue) ----
@@ -172,6 +188,7 @@ export function resetTracking() {
 }
 
 export function setAlgorithm(raw: string) {
+	_didEarlyCalibration = false;
 	const { expanded, grouped } = parseTokens(raw);
 	const canonical = expanded.map(buildCanonical);
 	const map: (string | null)[] = [];
@@ -195,7 +212,12 @@ export function setAlgorithm(raw: string) {
 	setTracking("segments", parseSegments(raw, expanded.length));
 	setTracking("pendingMoves", []);
 	setTracking("patternInitStartedAt", Date.now());
+	// Reset ready so ensureImmediateReady recomputes pattern states for the
+	// new algorithm below (avoids stale _progressPatternRaw / _patternStates
+	// from the previous algorithm if initPatterns hasn't resolved yet).
+	setTracking("ready", false);
 	ensureImmediateReady();
+	advancePastRotations();
 	void initPatterns();
 	setTimeout(() => {
 		if (!tracking.ready && tracking.userAlg === expanded) {
@@ -292,7 +314,21 @@ function forceReady() {
 	}
 }
 
-export function ingestMove(deviceMove: string) {
+// Auto-advance past any rotation tokens (x/y/z) immediately after
+// accepting a move, since physical GAN cubes have no gyroscope and the
+// user never needs to "perform" a rotation token.
+function advancePastRotations() {
+	while (true) {
+		const nextIdx = tracking.currentMoveIndex + 1;
+		const next = tracking.userAlg[nextIdx];
+		if (!next) break;
+		if (!/^[xyz]['2]?$/i.test(next.replace(/[()]/g, ""))) break;
+		_progressPatternRaw = _patternStates[nextIdx] ?? _progressPatternRaw;
+		setTracking("currentMoveIndex", nextIdx);
+	}
+}
+
+export function ingestMove(move: string) {
 	if (!tracking.ready || !tracking.userAlg.length) {
 		if (tracking.userAlg.length && tracking.patternsReadyMode === "none") {
 			debug("autoEnsureReady");
@@ -301,8 +337,8 @@ export function ingestMove(deviceMove: string) {
 		if (tracking.ready) {
 			// continue
 		} else {
-			setTracking("pendingMoves", [...tracking.pendingMoves, deviceMove]);
-			debug("queue:not-ready", { ready: tracking.ready, deviceMove });
+			setTracking("pendingMoves", [...tracking.pendingMoves, move]);
+			debug("queue:not-ready", { ready: tracking.ready, move });
 			return;
 		}
 	}
@@ -315,11 +351,9 @@ export function ingestMove(deviceMove: string) {
 		return;
 	}
 	const norm = (m: string) => m.replace(/[()]/g, "");
-	let logical = deviceMove.trim();
+	let logical = move.trim();
 	if (tracking.eventTransform)
 		logical = applyRotationToMove(logical, tracking.eventTransform);
-	const orientationMode = window._orientationMode || "white-up";
-	if (orientationMode === "yellow-up") logical = mapTokenByZ2(logical);
 	logical = norm(logical);
 
 	if (
@@ -358,8 +392,7 @@ export function ingestMove(deviceMove: string) {
 			if (!acceptable.has(logicalLetter)) {
 				for (const cand of rotationCandidates()) {
 					if (!cand) continue;
-					let rotated = applyRotationToMove(deviceMove, cand);
-					if (orientationMode === "yellow-up") rotated = mapTokenByZ2(rotated);
+					let rotated = applyRotationToMove(move, cand);
 					rotated = norm(rotated);
 					const rLetter = rotated.charAt(0).toUpperCase();
 					if (acceptable.has(rLetter)) {
@@ -416,8 +449,9 @@ export function ingestMove(deviceMove: string) {
 						setTracking("pendingSlice", null);
 						setTracking("acceptedDeviceMoves", [
 							...tracking.acceptedDeviceMoves,
-							deviceMove,
+							move,
 						]);
+						advancePastRotations();
 						recomputeDisplay();
 						return;
 					}
@@ -425,22 +459,16 @@ export function ingestMove(deviceMove: string) {
 			}
 			const firstTok = tracking.pendingSlice.first.replace(/[()]/g, "");
 			const secondTok = logical.replace(/[()]/g, "");
-			const face1 = firstTok[0];
-			const face2 = secondTok[0];
 			const dir = (mv: string) =>
 				mv.endsWith("'") ? -1 : mv.endsWith("2") ? 2 : 1;
 			const d1 = dir(firstTok);
 			const d2 = dir(secondTok);
 			let inferred = false;
 			if (firstTok && Math.abs(d1) === 1 && Math.abs(d2) === 1 && d1 === -d2) {
-				const checkPair = (a: string, b: string, A: string, B: string) =>
-					(a === A && b === B) || (a === B && b === A);
-				if (axis === "M" && checkPair(face1 ?? "", face2 ?? "", "R", "L"))
-					inferred = true;
-				else if (axis === "E" && checkPair(face1 ?? "", face2 ?? "", "U", "D"))
-					inferred = true;
-				else if (axis === "S" && checkPair(face1 ?? "", face2 ?? "", "F", "B"))
-					inferred = true;
+				const inferredSlice = inferSliceQuarterTurn(axis, firstTok, secondTok);
+				inferred = isDoubleSlice
+					? inferredSlice !== null
+					: inferredSlice === normalizedExpect;
 			}
 			if (inferred) {
 				if (isDoubleSlice) {
@@ -462,8 +490,9 @@ export function ingestMove(deviceMove: string) {
 						setTracking("pendingSlice", null);
 						setTracking("acceptedDeviceMoves", [
 							...tracking.acceptedDeviceMoves,
-							deviceMove,
+							move,
 						]);
+						advancePastRotations();
 						recomputeDisplay();
 						return;
 					}
@@ -477,8 +506,9 @@ export function ingestMove(deviceMove: string) {
 					setTracking("pendingSlice", null);
 					setTracking("acceptedDeviceMoves", [
 						...tracking.acceptedDeviceMoves,
-						deviceMove,
+						move,
 					]);
+					advancePastRotations();
 					recomputeDisplay();
 					return;
 				}
@@ -536,8 +566,9 @@ export function ingestMove(deviceMove: string) {
 					setTracking("badAlg", []);
 					setTracking("acceptedDeviceMoves", [
 						...tracking.acceptedDeviceMoves,
-						deviceMove,
+						move,
 					]);
+					advancePastRotations();
 					recomputeDisplay();
 					return;
 				}
@@ -568,8 +599,9 @@ export function ingestMove(deviceMove: string) {
 					setTracking("pendingWide", null);
 					setTracking("acceptedDeviceMoves", [
 						...tracking.acceptedDeviceMoves,
-						deviceMove,
+						move,
 					]);
+					advancePastRotations();
 					recomputeDisplay();
 					return;
 				}
@@ -605,8 +637,9 @@ export function ingestMove(deviceMove: string) {
 				setTracking("pendingDouble", null);
 				setTracking("acceptedDeviceMoves", [
 					...tracking.acceptedDeviceMoves,
-					deviceMove,
+					move,
 				]);
+				advancePastRotations();
 				recomputeDisplay();
 				return;
 			}
@@ -640,8 +673,9 @@ export function ingestMove(deviceMove: string) {
 		setTracking("badAlg", []);
 		setTracking("acceptedDeviceMoves", [
 			...tracking.acceptedDeviceMoves,
-			deviceMove,
+			move,
 		]);
+		advancePastRotations();
 		recomputeDisplay();
 		return;
 	}
@@ -651,8 +685,7 @@ export function ingestMove(deviceMove: string) {
 	if (!tracking.eventTransform) {
 		for (const cand of rotationCandidates()) {
 			if (!cand) continue;
-			let test = applyRotationToMove(deviceMove, cand);
-			if (orientationMode === "yellow-up") test = mapTokenByZ2(test);
+			let test = applyRotationToMove(move, cand);
 			test = norm(test);
 			const testApplied = basePattern.applyMove(test) as PatternLike;
 			if (expectedPattern?.isIdentical?.(testApplied)) {
@@ -662,8 +695,9 @@ export function ingestMove(deviceMove: string) {
 				setTracking("badAlg", []);
 				setTracking("acceptedDeviceMoves", [
 					...tracking.acceptedDeviceMoves,
-					deviceMove,
+					move,
 				]);
+				advancePastRotations();
 				recomputeDisplay();
 				return;
 			}
@@ -680,8 +714,7 @@ export function ingestMove(deviceMove: string) {
 		const basePatternRef = _progressPatternRaw || _currentPattern;
 		for (const r of refine) {
 			const combo = `${tracking.eventTransform} ${r}`.trim();
-			let test = applyRotationToMove(deviceMove, combo);
-			if (orientationMode === "yellow-up") test = mapTokenByZ2(test);
+			let test = applyRotationToMove(move, combo);
 			test = norm(test);
 			const testApplied = (basePatternRef as PatternLike).applyMove(
 				test,
@@ -693,8 +726,9 @@ export function ingestMove(deviceMove: string) {
 				setTracking("badAlg", []);
 				setTracking("acceptedDeviceMoves", [
 					...tracking.acceptedDeviceMoves,
-					deviceMove,
+					move,
 				]);
+				advancePastRotations();
 				recomputeDisplay();
 				return;
 			}
@@ -723,8 +757,7 @@ export function ingestMove(deviceMove: string) {
 		const [outer, sliceComp] = ctok.components;
 		if (outer && sliceComp) {
 			for (const cand of rotationCandidates()) {
-				let rotated = applyRotationToMove(deviceMove, cand);
-				if (orientationMode === "yellow-up") rotated = mapTokenByZ2(rotated);
+				let rotated = applyRotationToMove(move, cand);
 				rotated = norm(rotated);
 				if (rotated === outer || rotated === sliceComp) {
 					const partner = rotated === outer ? sliceComp : outer;
@@ -738,8 +771,9 @@ export function ingestMove(deviceMove: string) {
 						setTracking("badAlg", []);
 						setTracking("acceptedDeviceMoves", [
 							...tracking.acceptedDeviceMoves,
-							deviceMove,
+							move,
 						]);
+						advancePastRotations();
 						recomputeDisplay();
 						return;
 					}
