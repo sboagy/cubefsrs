@@ -177,6 +177,23 @@ describe("ingestMove – double turns", () => {
 		// Move is buffered, not yet accepted at the expected index
 		expect(tracking.currentMoveIndex).toBe(-1);
 	});
+
+	it("requires two opposite quarter turns to undo a wrong-direction double turn", () => {
+		loadAlg("U2 R");
+
+		ingestMove("U'");
+		ingestMove("U'");
+		expect(tracking.badAlg).toEqual(["U'", "U'"]);
+		expect(tracking.currentMoveIndex).toBe(-1);
+
+		ingestMove("U");
+		expect(tracking.badAlg).toEqual(["U'"]);
+		expect(tracking.currentMoveIndex).toBe(-1);
+
+		ingestMove("U");
+		expect(tracking.badAlg).toHaveLength(0);
+		expect(tracking.currentMoveIndex).toBe(-1);
+	});
 });
 
 describe("ingestMove – slice composites", () => {

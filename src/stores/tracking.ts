@@ -616,12 +616,18 @@ export function ingestMove(move: string) {
 
 	// Double turn as two quarter turns
 	const expectedIsDouble = /^[URFDLB]2'?$/i.test(expectNorm);
+	let wrongDirectionQuarterOnExpectedDouble = false;
 	if (expectedIsDouble) {
 		const face = expectNorm[0]?.toUpperCase() ?? "";
 		const wantsPrime = expectNorm.endsWith("'");
 		const quarterOk = (mv: string) =>
 			mv[0]?.toUpperCase() === face &&
 			(wantsPrime ? mv.endsWith("'") : !mv.endsWith("'"));
+		wrongDirectionQuarterOnExpectedDouble =
+			logical[0]?.toUpperCase() === face &&
+			/^[URFDLB]['2]?$/.test(logical) &&
+			!logical.endsWith("2") &&
+			!quarterOk(logical);
 		if (!tracking.pendingDouble && quarterOk(logical)) {
 			setTracking("pendingDouble", { face, first: logical, wantsPrime });
 			recomputeDisplay();
@@ -784,7 +790,11 @@ export function ingestMove(move: string) {
 
 	// Record mistake
 	const bad = [...tracking.badAlg];
-	if (bad[bad.length - 1] !== logical) bad.push(logical);
+	if (
+		bad[bad.length - 1] !== logical ||
+		wrongDirectionQuarterOnExpectedDouble
+	)
+		bad.push(logical);
 	if (bad.length > 4) bad.splice(0, bad.length - 4);
 	setTracking("badAlg", bad);
 	recomputeDisplay();
