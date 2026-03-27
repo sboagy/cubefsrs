@@ -112,6 +112,14 @@ export class CubeFSRSPage {
 	}
 
 	/**
+	 * Practice content that indicates the main view has finished rendering.
+	 * This is either the empty-state banner or an algorithm row when a due card exists.
+	 */
+	get practiceContent(): Locator {
+		return this.emptyStateMessage.or(this.algorithmText).first();
+	}
+
+	/**
 	 * The algorithm text span in PracticeView.
 	 * Contains move notation like `R U R' U'`.
 	 */
@@ -291,6 +299,14 @@ export class CubeFSRSPage {
 		).toBeVisible({
 			timeout: 10_000,
 		});
+	}
+
+	/** Wait for the Practice view to render either an empty state or an algorithm. */
+	async waitForPracticeContent(timeout = 10_000): Promise<void> {
+		await expect(
+			this.page.getByRole("heading", { name: "Practice" }),
+		).toBeVisible({ timeout });
+		await expect(this.practiceContent).toBeVisible({ timeout });
 	}
 
 	/**
