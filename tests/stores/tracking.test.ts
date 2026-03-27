@@ -109,6 +109,16 @@ describe("resetTracking", () => {
 		expect(tracking.currentMoveIndex).toBe(-1);
 		expect(tracking.badAlg).toHaveLength(0);
 	});
+
+	it("still skips leading rotations after reset before accepting a move", () => {
+		loadAlg("y R U");
+		resetTracking();
+
+		ingestMove("R");
+
+		expect(tracking.currentMoveIndex).toBe(1);
+		expect(tracking.badAlg).toHaveLength(0);
+	});
 });
 
 describe("ingestMove – white-up orientation", () => {

@@ -342,7 +342,10 @@ export function ingestMove(move: string) {
 			return;
 		}
 	}
-	const next = tracking.userAlg[tracking.currentMoveIndex + 1];
+	const hadNoAcceptedMoves = tracking.acceptedDeviceMoves.length === 0;
+	advancePastRotations();
+	const nextIndex = tracking.currentMoveIndex + 1;
+	const next = tracking.userAlg[nextIndex];
 	if (!next) {
 		debug("skip:no-next", {
 			idx: tracking.currentMoveIndex,
@@ -371,17 +374,16 @@ export function ingestMove(move: string) {
 		debug("skip:no-basePattern");
 		return;
 	}
-	const nextIndex = tracking.currentMoveIndex + 1;
 	const expectedPattern = _patternStates[nextIndex];
 	const expectNorm = norm(next);
 
 	// Early rotation calibration
 	if (
-		tracking.currentMoveIndex === -1 &&
+		hadNoAcceptedMoves &&
 		!tracking.eventTransform &&
 		!_didEarlyCalibration
 	) {
-		const expectedTok = tracking.canonical[0];
+		const expectedTok = tracking.canonical[nextIndex];
 		if (expectedTok) {
 			const acceptable = new Set<string>();
 			for (const comp of expectedTok.components) {
