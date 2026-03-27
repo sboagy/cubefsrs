@@ -231,6 +231,15 @@ export default function PracticeView() {
 				startPractice();
 			}
 			// Single translation point: hardware move → logical move (z2 for yellow-up)
+			// 1. src/services/ganBluetooth.ts receives `MOVE` events from
+			//    `gan-web-bluetooth` and emits `{ type: "move", move }`.
+			// 2. src/stores/device.ts subscribes via `onGanEvents(...)` and
+			//    writes `device.lastMove` plus `device.lastMoveAt`.
+			// 3. src/views/PracticeView.tsx reacts to that store edge and does
+			//    the logical translation before calling `ingestMove(...)`.
+			// 4. src/components/practice/CubeViewer.tsx separately reacts to
+			//    the same raw store edge for display and applies the same z2
+			//    mapping for `experimentalAddMove(...)`.
 			const logical =
 				orientationMode() === "yellow-up" ? mapTokenByZ2(mv.trim()) : mv.trim();
 			ingestMove(logical);
