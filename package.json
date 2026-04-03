@@ -70,14 +70,14 @@
 		"drizzle-kit": "^0.31.9",
 		"jsdom": "^25.0.1",
 		"loglevel": "^1.9.2",
+		"oosync": "git+https://github.com/sboagy/oosync.git#main",
 		"postcss": "^8.4.47",
 		"tailwindcss": "^3.4.13",
 		"tsx": "^4.21.0",
-		"typescript": "^5.5.3",
-		"vite": "^5.4.8",
-		"vite-plugin-solid": "^2.10.2",
+		"typescript": "6.0.2",
+		"vite": "8.0.3",
+		"vite-plugin-solid": "^2.11.11",
 		"vite-plugin-static-copy": "^3.3.0",
-		"vitest": "^3.0.0",
-		"oosync": "git+https://github.com/sboagy/oosync.git#main"
+		"vitest": "^3.0.0"
 	}
 }
