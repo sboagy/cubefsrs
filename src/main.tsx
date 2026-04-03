@@ -18,6 +18,14 @@ const BuildView = lazy(() => import("@/views/BuildView"));
 
 initFsrs();
 
+// Expose the Vite build mode as a synchronous window property so E2E setup
+// scripts can detect server mode immediately — before any auth or DB work.
+// This avoids a silent 30s hang in auth.setup.ts when the dev server was
+// accidentally started without `--mode test` (i.e. `npm run dev` vs `dev:test`).
+if (import.meta.env.MODE === "test") {
+	(window as unknown as Record<string, string>).__cfMode = "test";
+}
+
 const root = document.getElementById("app");
 if (!root) throw new Error("#app element not found");
 render(

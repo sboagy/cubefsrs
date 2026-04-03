@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Clear Service Worker</title>
+    <style>
+      body {
+        font-family: sans-serif;
+        max-width: 480px;
+        margin: 4rem auto;
+        padding: 0 1rem;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Clearing Service Worker…</h1>
+    <p id="status">Working…</p>
+    <script>
+      if ("serviceWorker" in navigator) {
+        navigator.serviceWorker.getRegistrations().then((registrations) => {
+          const count = registrations.length;
+          for (const registration of registrations) {
+            registration.unregister();
+          }
+          document.getElementById("status").innerHTML =
+            count > 0
+              ? `✅ Cleared ${count} service worker(s). <a href="/">Go to app</a>`
+              : `ℹ️ No service workers were registered. <a href="/">Go to app</a>`;
+        });
+      } else {
+        document.getElementById("status").textContent =
+          "Service workers are not supported in this browser.";
+      }
+    </script>
+  </body>
+</html>
