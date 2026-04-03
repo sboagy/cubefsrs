@@ -192,6 +192,38 @@ setup("authenticate all test users", async ({ browser }) => {
 	const shouldReset = process.env.RESET_DB === "true";
 	const isCI = !!process.env.CI;
 
+	// ── pre-check: dev server must be running with --mode test ───────────────
+	// window.__cfMode is set synchronously at app startup (main.tsx) only when
+	// MODE === "test". Detecting it here (before the per-user login loop) fails
+	// fast with a clear message instead of silently hanging ~30s per user while
+	// waitForFunction polls for __cfTestApi that will never appear.
+	{
+		const probePage = await browser.newPage();
+		try {
+			await probePage.goto(`${BASE_URL}/`, {
+				waitUntil: "domcontentloaded",
+				timeout: 10_000,
+			});
+			const cfMode = await probePage.evaluate(
+				() =>
+					(window as unknown as Record<string, unknown>).__cfMode as
+						| string
+						| undefined,
+			);
+			if (cfMode !== "test") {
+				throw new Error(
+					"[auth.setup] Dev server is NOT running in test mode " +
+						`(window.__cfMode = ${JSON.stringify(cfMode ?? null)}).\n` +
+						"Kill the existing dev server and start it with:\n" +
+						"  npm run dev:test\n" +
+						"Then re-run the E2E tests.",
+				);
+			}
+		} finally {
+			await probePage.close();
+		}
+	}
+
 	// ── optional DB reset (CubeFSRS rows only) ───────────────────────────────
 	if (shouldReset) {
 		console.log("🗑️  RESET_DB=true — clearing CubeFSRS user data in Supabase…");
