@@ -1,6 +1,10 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
+
+/* Scan compiled rhizome shared-component output for Tailwind class usage */
+@source "../../node_modules/@rhizome/core/dist/**/*.{js,mjs}";
+
+/* Use class-based dark mode (adds `.dark` selector support, matching v3 behaviour) */
+@custom-variant dark (&:where(.dark, .dark *));
 
 @layer base {
 	html {
