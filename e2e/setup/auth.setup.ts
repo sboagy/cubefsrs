@@ -60,10 +60,20 @@ const CUBEFSRS_USER_TABLES = [
 
 const AUTH_EXPIRY_SAFETY_WINDOW_MS = 5 * 60 * 1000;
 
-const ALICE_TEST_PASSWORD =
-	process.env.ALICE_TEST_PASSWORD ||
-	process.env.TEST_USER_PASSWORD ||
-	"TestPassword123!";
+function getRequiredTestPassword(): string {
+	const password =
+		process.env.ALICE_TEST_PASSWORD ?? process.env.TEST_USER_PASSWORD;
+
+	if (password && password.trim().length > 0) {
+		return password;
+	}
+
+	throw new Error(
+		"[auth.setup] Missing ALICE_TEST_PASSWORD or TEST_USER_PASSWORD. Inject the shared test password from 1Password before running auth setup.",
+	);
+}
+
+const ALICE_TEST_PASSWORD = getRequiredTestPassword();
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 

@@ -13,7 +13,21 @@ import { CubeFSRSPage } from "../page-objects/CubeFSRSPage";
 import { BASE_URL } from "../test-config";
 
 const ALICE_EMAIL = "alice.test@tunetrees.test";
-const ALICE_PASSWORD = process.env.ALICE_TEST_PASSWORD ?? "TestPassword123!";
+
+function getRequiredTestPassword(): string {
+	const password =
+		process.env.ALICE_TEST_PASSWORD ?? process.env.TEST_USER_PASSWORD;
+
+	if (password && password.trim().length > 0) {
+		return password;
+	}
+
+	throw new Error(
+		"Missing ALICE_TEST_PASSWORD or TEST_USER_PASSWORD. Inject the shared test password from 1Password before running this test.",
+	);
+}
+
+const ALICE_PASSWORD = getRequiredTestPassword();
 
 test.describe("auth-001: sign in", () => {
 	test("Alice can sign in and see the practice view", async ({ page }) => {
