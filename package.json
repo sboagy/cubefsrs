@@ -8,7 +8,7 @@
 		"dev": "FORCE_COLOR=1 op run --env-file=\".env.local.template\" -- vite",
 		"dev:test": "FORCE_COLOR=1 op run --env-file=\".env.local.template\" -- vite --mode test",
 		"build": "npm run build:production",
-		"build:production": "FORCE_COLOR=1 op run --env-file=\".env.prod.template\" -- vite build",
+		"build:production": "FORCE_COLOR=1 op run --env-file=\".env.build.prod.template\" -- vite build",
 		"build:preview-local": "FORCE_COLOR=1 op run --env-file=\".env.local.template\" -- vite build",
 		"preview": "FORCE_COLOR=1 op run --env-file=\".env.local.template\" -- vite preview",
 		"preview:local": "op run --env-file=\".env.local.template\" -- vite preview --strictPort --port 4174",

@@ -652,8 +652,8 @@ jobs:
       - name: Install Worker Dependencies
         run: cd worker && npm ci
 
-      # Build uses the production env template so deployed bundles do not
-      # inherit local worker URLs from the local dev template.
+      # Build uses the narrower production build template so PR/test builds do
+      # not require deploy-only Cloudflare secrets.
       - name: Build Application
         run: npm run build
 
