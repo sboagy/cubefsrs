@@ -32,6 +32,7 @@ import {
 	CURRENT_AUTH_STATE_SNAPSHOT_VERSION,
 	readStoredAuthStateMetadata,
 } from "../helpers/auth-state";
+import { getRequiredTestPassword } from "../helpers/auth-env";
 import { TEST_USERS } from "../helpers/test-users";
 import { BASE_URL } from "../test-config";
 
@@ -70,19 +71,62 @@ function quoteSqlLiteral(value: string): string {
 	return `'${value.replaceAll("'", "''")}'`;
 }
 
-function getRequiredTestPassword(): string {
-	const password =
-		process.env.ALICE_TEST_PASSWORD ?? process.env.TEST_USER_PASSWORD;
+// ── helpers ──────────────────────────────────────────────────────────────────
 
-	if (password && password.trim().length > 0) {
-		return password;
+function formatExecFileErrorOutput(error: unknown): string {
+	if (!error || typeof error !== "object") {
+		return "";
 	}
 
-	throw new Error(
-		"[auth.setup] Missing ALICE_TEST_PASSWORD or TEST_USER_PASSWORD. Inject the shared test password from 1Password before running auth setup.",
-	);
+	const execError = error as {
+		stdout?: string | Buffer;
+		stderr?: string | Buffer;
+	};
+	const details: string[] = [];
+
+	const stdout = Buffer.isBuffer(execError.stdout)
+		? execError.stdout.toString("utf8")
+		: execError.stdout;
+	if (typeof stdout === "string" && stdout.trim().length > 0) {
+		details.push(`stdout:\n${stdout.trim()}`);
+	}
+
+	const stderr = Buffer.isBuffer(execError.stderr)
+		? execError.stderr.toString("utf8")
+		: execError.stderr;
+	if (typeof stderr === "string" && stderr.trim().length > 0) {
+		details.push(`stderr:\n${stderr.trim()}`);
+	}
+
+	if (details.length === 0) {
+		return "";
+	}
+
+	return `\n${details.join("\n")}`;
 }
-// ── helpers ──────────────────────────────────────────────────────────────────
+
+function ensurePsqlAvailable(): void {
+	try {
+		execFileSync("psql", ["--version"], {
+			encoding: "utf8",
+			stdio: ["ignore", "pipe", "pipe"],
+			env: process.env,
+		});
+	} catch (error) {
+		const execError = error as NodeJS.ErrnoException;
+		if (execError.code === "ENOENT") {
+			throw new Error(
+				"[auth.setup] RESET_DB=true requires the PostgreSQL CLI (`psql`), but it was not found in PATH. Install PostgreSQL client tools and verify `psql --version` works before re-running this setup.",
+			);
+		}
+
+		const message = execError.message ?? String(error);
+		const output = formatExecFileErrorOutput(error);
+		throw new Error(
+			`[auth.setup] Unable to run \`psql --version\` before RESET_DB cleanup: ${message}${output}`,
+		);
+	}
+}
 
 function ensureAuthDir(): void {
 	if (!existsSync(AUTH_DIR)) {
@@ -165,6 +209,7 @@ async function waitForCatalogSnapshotReady(
 async function resetCubefsrsUserData(): Promise<void> {
 	const userIds = Object.values(TEST_USERS).map((u) => u.userId);
 	const userIdList = userIds.map(quoteSqlLiteral).join(", ");
+	ensurePsqlAvailable();
 
 	for (const table of CUBEFSRS_USER_TABLES) {
 		try {
@@ -188,8 +233,9 @@ async function resetCubefsrsUserData(): Promise<void> {
 			);
 		} catch (error) {
 			const message = error instanceof Error ? error.message : String(error);
+			const output = formatExecFileErrorOutput(error);
 			throw new Error(
-				`[auth.setup] Failed to clear cubefsrs.${table}: ${message}`,
+				`[auth.setup] Failed to clear cubefsrs.${table}: ${message}${output}`,
 			);
 		}
 
@@ -241,7 +287,7 @@ setup("authenticate all test users", async ({ browser }) => {
 
 	const shouldReset = process.env.RESET_DB === "true";
 	const isCI = !!process.env.CI;
-	const sharedTestPassword = getRequiredTestPassword();
+	const sharedTestPassword = getRequiredTestPassword("auth.setup");
 
 	// ── pre-check: dev server must be running with --mode test ───────────────
 	// window.__cfMode is set synchronously at app startup (main.tsx) only when
