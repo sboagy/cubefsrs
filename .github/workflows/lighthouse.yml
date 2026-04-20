@@ -48,8 +48,8 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      # Build flows through the production template so the analyzed bundle
-      # matches deployed settings instead of local worker configuration.
+      # Build flows through the production build template so the analyzed bundle
+      # matches deployed app settings without requiring deploy-only secrets.
       - name: Build Application
         run: npm run build
 

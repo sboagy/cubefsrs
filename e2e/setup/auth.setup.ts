@@ -13,15 +13,17 @@
  *   - The shared local Supabase instance must be running (`supabase start`).
  *   - The app dev server must be running with MODE=test
  *     (`npm run dev:test` or launched by Playwright webServer).
- *   - Environment variables `VITE_SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`,
- *     and `VITE_SUPABASE_ANON_KEY` must be set (via .env.local or CI secrets).
+ *   - Environment variables `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`
+ *     must be set (via .env.local or CI secrets).
+ *   - `RESET_DB=true` also requires `DATABASE_URL`, or it falls back to the
+ *     standard local Supabase Postgres URL.
  */
 
+import { execFileSync } from "node:child_process";
 import { existsSync, mkdirSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { expect, test as setup } from "@playwright/test";
-import { createClient } from "@supabase/supabase-js";
 import { config } from "dotenv";
 import {
 	AUTH_STATE_DB_VERSION_STORAGE_KEY,
@@ -30,6 +32,7 @@ import {
 	CURRENT_AUTH_STATE_SNAPSHOT_VERSION,
 	readStoredAuthStateMetadata,
 } from "../helpers/auth-state";
+import { getRequiredTestPassword } from "../helpers/auth-env";
 import { TEST_USERS } from "../helpers/test-users";
 import { BASE_URL } from "../test-config";
 
@@ -37,6 +40,10 @@ import { BASE_URL } from "../test-config";
 config({ path: ".env.local" });
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
+const REPO_ROOT = resolve(__dirname, "../..");
+const E2E_DATABASE_URL =
+	process.env.DATABASE_URL ||
+	"postgresql://postgres:postgres@127.0.0.1:54322/postgres";
 
 /** Auth state files live in e2e/.auth/ (listed in e2e/.gitignore) */
 const AUTH_DIR = resolve(__dirname, "../.auth");
@@ -60,12 +67,66 @@ const CUBEFSRS_USER_TABLES = [
 
 const AUTH_EXPIRY_SAFETY_WINDOW_MS = 5 * 60 * 1000;
 
-const ALICE_TEST_PASSWORD =
-	process.env.ALICE_TEST_PASSWORD ||
-	process.env.TEST_USER_PASSWORD ||
-	"TestPassword123!";
+function quoteSqlLiteral(value: string): string {
+	return `'${value.replaceAll("'", "''")}'`;
+}
 
 // ── helpers ──────────────────────────────────────────────────────────────────
+
+function formatExecFileErrorOutput(error: unknown): string {
+	if (!error || typeof error !== "object") {
+		return "";
+	}
+
+	const execError = error as {
+		stdout?: string | Buffer;
+		stderr?: string | Buffer;
+	};
+	const details: string[] = [];
+
+	const stdout = Buffer.isBuffer(execError.stdout)
+		? execError.stdout.toString("utf8")
+		: execError.stdout;
+	if (typeof stdout === "string" && stdout.trim().length > 0) {
+		details.push(`stdout:\n${stdout.trim()}`);
+	}
+
+	const stderr = Buffer.isBuffer(execError.stderr)
+		? execError.stderr.toString("utf8")
+		: execError.stderr;
+	if (typeof stderr === "string" && stderr.trim().length > 0) {
+		details.push(`stderr:\n${stderr.trim()}`);
+	}
+
+	if (details.length === 0) {
+		return "";
+	}
+
+	return `\n${details.join("\n")}`;
+}
+
+function ensurePsqlAvailable(): void {
+	try {
+		execFileSync("psql", ["--version"], {
+			encoding: "utf8",
+			stdio: ["ignore", "pipe", "pipe"],
+			env: process.env,
+		});
+	} catch (error) {
+		const execError = error as NodeJS.ErrnoException;
+		if (execError.code === "ENOENT") {
+			throw new Error(
+				"[auth.setup] RESET_DB=true requires the PostgreSQL CLI (`psql`), but it was not found in PATH. Install PostgreSQL client tools and verify `psql --version` works before re-running this setup.",
+			);
+		}
+
+		const message = execError.message ?? String(error);
+		const output = formatExecFileErrorOutput(error);
+		throw new Error(
+			`[auth.setup] Unable to run \`psql --version\` before RESET_DB cleanup: ${message}${output}`,
+		);
+	}
+}
 
 function ensureAuthDir(): void {
 	if (!existsSync(AUTH_DIR)) {
@@ -146,37 +207,72 @@ async function waitForCatalogSnapshotReady(
  * user.  Only called when `RESET_DB=true`.  Never touches catalog tables.
  */
 async function resetCubefsrsUserData(): Promise<void> {
-	const supabaseUrl = process.env.VITE_SUPABASE_URL;
-	const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-	if (!supabaseUrl || !serviceRoleKey) {
-		throw new Error(
-			"[auth.setup] RESET_DB=true requires VITE_SUPABASE_URL and " +
-				"SUPABASE_SERVICE_ROLE_KEY to be set.",
-		);
-	}
-
-	const adminClient = createClient(supabaseUrl, serviceRoleKey, {
-		auth: { autoRefreshToken: false, persistSession: false },
-	});
-
 	const userIds = Object.values(TEST_USERS).map((u) => u.userId);
+	const userIdList = userIds.map(quoteSqlLiteral).join(", ");
+	ensurePsqlAvailable();
 
 	for (const table of CUBEFSRS_USER_TABLES) {
-		const { error } = await adminClient
-			.schema("cubefsrs")
-			.from(table)
-			.delete()
-			.in("user_id", userIds);
-
-		if (error) {
+		try {
+			execFileSync(
+				"psql",
+				[
+					"-d",
+					E2E_DATABASE_URL,
+					"--no-psqlrc",
+					"-v",
+					"ON_ERROR_STOP=1",
+					"-c",
+					`DELETE FROM cubefsrs.${table} WHERE user_id IN (${userIdList});`,
+				],
+				{
+					cwd: REPO_ROOT,
+					encoding: "utf8",
+					stdio: ["ignore", "pipe", "pipe"],
+					env: process.env,
+				},
+			);
+		} catch (error) {
+			const message = error instanceof Error ? error.message : String(error);
+			const output = formatExecFileErrorOutput(error);
 			throw new Error(
-				`[auth.setup] Failed to clear cubefsrs.${table}: ${error.message}`,
+				`[auth.setup] Failed to clear cubefsrs.${table}: ${message}${output}`,
 			);
 		}
 
 		console.log(`  ✅ Cleared cubefsrs.${table} for ${userIds.length} users`);
 	}
+}
+
+async function getCfModeWithRetry(
+	page: import("@playwright/test").Page,
+	timeoutMs: number,
+): Promise<string | null> {
+	const deadline = Date.now() + timeoutMs;
+	let lastMode: string | null = null;
+
+	while (Date.now() < deadline) {
+		try {
+			lastMode = await page.evaluate(
+				() =>
+					((window as unknown as Record<string, unknown>).__cfMode as
+						| string
+						| undefined) ?? null,
+			);
+
+			if (lastMode === "test") {
+				return lastMode;
+			}
+		} catch (error) {
+			const message = error instanceof Error ? error.message : String(error);
+			if (!message.includes("Execution context was destroyed")) {
+				throw error;
+			}
+		}
+
+		await page.waitForTimeout(100);
+	}
+
+	return lastMode;
 }
 
 // ── main setup test ───────────────────────────────────────────────────────────
@@ -191,6 +287,7 @@ setup("authenticate all test users", async ({ browser }) => {
 
 	const shouldReset = process.env.RESET_DB === "true";
 	const isCI = !!process.env.CI;
+	const sharedTestPassword = getRequiredTestPassword("auth.setup");
 
 	// ── pre-check: dev server must be running with --mode test ───────────────
 	// window.__cfMode is set synchronously at app startup (main.tsx) only when
@@ -204,12 +301,7 @@ setup("authenticate all test users", async ({ browser }) => {
 				waitUntil: "domcontentloaded",
 				timeout: 10_000,
 			});
-			const cfMode = await probePage.evaluate(
-				() =>
-					(window as unknown as Record<string, unknown>).__cfMode as
-						| string
-						| undefined,
-			);
+			const cfMode = await getCfModeWithRetry(probePage, 2_000);
 			if (cfMode !== "test") {
 				throw new Error(
 					"[auth.setup] Dev server is NOT running in test mode " +
@@ -263,7 +355,7 @@ setup("authenticate all test users", async ({ browser }) => {
 
 			// Fill credentials — use id-based selectors until Rhizome lands data-testids
 			await page.locator("#login-email").fill(testUser.email);
-			await page.locator("#login-password").fill(ALICE_TEST_PASSWORD);
+			await page.locator("#login-password").fill(sharedTestPassword);
 			await page.getByRole("button", { name: "Sign In" }).click();
 
 			// Wait for redirect away from /login

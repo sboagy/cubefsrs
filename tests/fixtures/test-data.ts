@@ -38,9 +38,6 @@ export const TEST_USER_HENRY_EMAIL = "henry.test@tunetrees.test";
 export const TEST_USER_IRIS_ID = "00000000-0000-4000-8000-000000009009";
 export const TEST_USER_IRIS_EMAIL = "iris.test@tunetrees.test";
 
-/** Shared password for all workspace test users. Matches `ALICE_TEST_PASSWORD` env var. */
-export const TEST_USER_PASSWORD = "TestPassword123!";
-
 // ============================================================
 // CATALOG CATEGORIES (from 01_global_catalog.sql)
 // ============================================================

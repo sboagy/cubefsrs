@@ -9,11 +9,12 @@
  */
 
 import { expect, test } from "@playwright/test";
+import { getRequiredTestPassword } from "../helpers/auth-env";
 import { CubeFSRSPage } from "../page-objects/CubeFSRSPage";
 import { BASE_URL } from "../test-config";
 
 const ALICE_EMAIL = "alice.test@tunetrees.test";
-const ALICE_PASSWORD = process.env.ALICE_TEST_PASSWORD ?? "TestPassword123!";
+const ALICE_PASSWORD = getRequiredTestPassword("auth-001-signin");
 
 test.describe("auth-001: sign in", () => {
 	test("Alice can sign in and see the practice view", async ({ page }) => {

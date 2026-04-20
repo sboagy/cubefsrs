@@ -110,6 +110,15 @@ jobs:
       - name: Install 1Password CLI
         uses: 1password/install-cli-action@v2
 
+      - name: Resolve test secrets from 1Password
+        # Resolves the shared test-user password via 1Password so it is never
+        # stored as a GitHub secret. Both env vars point to the same value.
+        run: |
+          echo "ALICE_TEST_PASSWORD=$(op read 'op://rhizome/shared-local/Test/ALICE_TEST_PASSWORD')" >> "$GITHUB_ENV"
+          echo "TEST_USER_PASSWORD=$(op read 'op://rhizome/shared-local/Test/ALICE_TEST_PASSWORD')" >> "$GITHUB_ENV"
+        env:
+          OP_SERVICE_ACCOUNT_TOKEN: ${{ secrets.OP_SERVICE_ACCOUNT_TOKEN }}
+
       - name: AGGRESSIVE DISK CLEANUP
         if: runner.os == 'Linux'
         run: |
@@ -386,6 +395,15 @@ jobs:
       - name: Install 1Password CLI
         uses: 1password/install-cli-action@v2
 
+      - name: Resolve test secrets from 1Password
+        # Resolves the shared test-user password via 1Password so it is never
+        # stored as a GitHub secret. Both env vars point to the same value.
+        run: |
+          echo "ALICE_TEST_PASSWORD=$(op read 'op://rhizome/shared-local/Test/ALICE_TEST_PASSWORD')" >> "$GITHUB_ENV"
+          echo "TEST_USER_PASSWORD=$(op read 'op://rhizome/shared-local/Test/ALICE_TEST_PASSWORD')" >> "$GITHUB_ENV"
+        env:
+          OP_SERVICE_ACCOUNT_TOKEN: ${{ secrets.OP_SERVICE_ACCOUNT_TOKEN }}
+
       - name: AGGRESSIVE DISK CLEANUP
         if: runner.os == 'Linux'
         run: |
@@ -652,8 +670,8 @@ jobs:
       - name: Install Worker Dependencies
         run: cd worker && npm ci
 
-      # Build uses the production env template so deployed bundles do not
-      # inherit local worker URLs from the local dev template.
+      # Build uses the narrower production build template so PR/test builds do
+      # not require deploy-only Cloudflare secrets.
       - name: Build Application
         run: npm run build
 

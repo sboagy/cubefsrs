@@ -48,3 +48,11 @@ Repository-specific architecture, tech stack details, and patterns (including sy
 - **Keep Architecture Docs Current:** If a task changes architecture, sync boundaries, codegen outputs, runtime wiring, or repository responsibilities, read `ARCHITECTURE.md` before editing and update it in the same change unless the architecture document remains accurate without modification.
 - **NEVER OPEN YOUR OWN SERVERS**:** Do not open any servers, tunnels, or expose any local or cloud resources to the internet without explicit instructions from the user. Always prioritize security and privacy when handling data and resources. If you need to access external resources, ask the user for guidance on how to do so safely.  Always ask the user to start the servers or tunnels on their end, and provide clear instructions for how to do so if needed.  Never attempt to access external resources directly without the user's involvement and explicit permission.
 
+## 6. Multi-Repo Agentic Workflow
+
+### 1. Unified Knowledge Access
+* **Global Memory Path:** Always utilize the Memory MCP server, if it is available.
+
+### 2. Orchestration Rules
+* **Sequential Thinking:** Mandatory for any task that spans repo boundaries (e.g., changing a schema in oosync and updating the migration in the App).
+* **Dependency Law:** Always trace patterns from the implementation repo (`oosync`) to the usage repo (`App`) using the `relation` tool.
