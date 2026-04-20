@@ -7,7 +7,7 @@
 		"types": ["@cloudflare/workers-types"],
 		"skipLibCheck": true,
 		"strict": true,
-    	"rootDir": "..",
+		"rootDir": "..",
 		"outDir": "./dist",
 		"allowImportingTsExtensions": true,
 		"noEmit": true,
