@@ -25,7 +25,7 @@
 - Dev server port: **5174** (not 5173 — set in `vite.config.ts`)
 - Local Supabase model: **one shared local Supabase instance** is used during workspace development; app-level `supabase/config.toml` files are not the source of truth for the shared E2E workflow. In CI, each app workflow starts its own isolated Supabase instance in its own job.
 - Worker port: **8787**
-- Local database is **SQLite WASM in the browser** via `sql.js` + oosync browser runtime, persisted in IndexedDB; tests cannot reach it as a normal host SQLite file and must go through app-side APIs
+- Local database is **SQLite WASM in the browser** via oosync browser runtime, persisted in IndexedDB; tests cannot reach it as a normal host SQLite file and must go through app-side APIs
 - IndexedDB name: `cubefsrs-storage`
 - Routes: `/login`, `/` (PracticeView), `/library` (AlgLibraryView), `/new`, `/options`, `/help`, `/build`
 - WebGL rendering is driven by direct `TwistyPlayer` construction from `cubing/twisty` in both `CubeViewer` and `CaseThumb`
@@ -76,7 +76,7 @@ This is the CubeFSRS equivalent of TuneTrees' `__ttTestApi`. Follow TuneTrees' a
 
 1. Create `src/lib/e2e-test-api.ts` — defines a `CfTestApi` interface and `attachCfTestApi(db, userId)` function exposing `window.__cfTestApi` as the only supported E2E mutation boundary for browser-local SQLite WASM state:
    - `attachCfTestApi(...)` must accept a second argument for CubeAuthProvider-owned sync/runtime controls rather than trying to discover them indirectly after attachment
-   - `dispose()` — closes the sql.js DB handles (calls `closeDb()`)
+   - `dispose()` — closes the browser SQLite DB handles (calls `closeDb()`)
    - `rehydrateStores()` — reloads the Solid stores from SQLite WASM using the same loader path used during sign-in (`loadAlgsFromDb`, `loadFsrsFromDb`, `loadPracticeFromDb`, `loadUserSettingsFromDb`)
    - `seedAlgSelection({ caseIds: string[] })` — inserts rows into `userAlgSelection` for the current user inside a local-only setup wrapper that suppresses sync triggers, clears any residual `sync_push_queue` rows, then calls `rehydrateStores()` before returning
    - `seedFsrsCardState({ caseId, dueOffsetDays, reps?, state? })` — inserts into `fsrsCardState` with a calculated due timestamp inside the same local-only setup wrapper, then calls `rehydrateStores()` before returning
@@ -260,7 +260,7 @@ This is the CubeFSRS equivalent of TuneTrees' `__ttTestApi`. Follow TuneTrees' a
 1. **`tests/lib/orientationMap.test.ts`** — pure function unit tests for `mapTokenByZ2()` and quaternion-to-token mapping
 2. **`tests/lib/cubeState.test.ts`** — pure function tests for cube state manipulation helpers in `src/lib/cubeState.ts`
 3. **`tests/services/fsrs.test.ts`** — scheduler pure functions: `createInitialState`, `review`, `pickNextDue`
-4. **`tests/stores/algs.test.ts`** — in-memory SQLite (sql.js or better-sqlite3) + Drizzle; test `toggleCase`, `selectSubset`, `deselectSubset`, `isSelected`
+4. **`tests/stores/algs.test.ts`** — in-memory SQLite + Drizzle; test `toggleCase`, `selectSubset`, `deselectSubset`, `isSelected`
 5. **`tests/stores/fsrs.test.ts`** — `ensureCard`, `refreshQueue`, `popNext` with in-memory DB and mocked cubing imports (`cubing/alg` and `cubing/twisty` mocks from `tests/__mocks__/`)
 
 ---

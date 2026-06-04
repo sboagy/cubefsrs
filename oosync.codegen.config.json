@@ -19,8 +19,8 @@
 		"dbVersionKeyPrefix": "cubefsrs-db-version",
 		"outboxBackupKeyPrefix": "cubefsrs-outbox-backup",
 		"lastSyncTimestampKeyPrefix": "CF_LAST_SYNC_TIMESTAMP",
-		"schemaVersion": "1.0.0",
-		"databaseVersion": 3,
+		"schemaVersion": "1.0.0-sqlite-wasm-engine",
+		"databaseVersion": 4,
 		"migrationDirectory": "drizzle/migrations/sqlite",
 		"migrationFiles": [
 			"/drizzle/migrations/sqlite/0000_sticky_riptide.sql",

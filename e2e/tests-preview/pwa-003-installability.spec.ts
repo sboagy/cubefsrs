@@ -44,18 +44,19 @@ test.describe("PWA-003: Installability Checks", () => {
 		expect(manifestHref).toMatch(/manifest/i);
 	});
 
-	test("manifest JSON contains required PWA fields", async ({ page, request }) => {
+	test("manifest JSON contains required PWA fields", async ({
+		page,
+		request,
+	}) => {
 		// Retrieve the manifest href from the DOM, then fetch it directly.
 		const manifestHref = await page
 			.locator('link[rel="manifest"]')
 			.getAttribute("href");
 		expect(manifestHref).toBeTruthy();
 
-		const baseURL =
-			(test.info().project.use.baseURL ?? "http://localhost:4174").replace(
-				/\/$/,
-				"",
-			);
+		const baseURL = (
+			test.info().project.use.baseURL ?? "http://localhost:4174"
+		).replace(/\/$/, "");
 		const manifestUrl = `${baseURL}${manifestHref}`;
 		const response = await request.get(manifestUrl);
 		expect(response.status()).toBe(200);
@@ -79,19 +80,23 @@ test.describe("PWA-003: Installability Checks", () => {
 	test("PWA icon assets are served correctly (192×192 and 512×512)", async ({
 		request,
 	}) => {
-		const baseURL =
-			(test.info().project.use.baseURL ?? "http://localhost:4174").replace(
-				/\/$/,
-				"",
-			);
+		const baseURL = (
+			test.info().project.use.baseURL ?? "http://localhost:4174"
+		).replace(/\/$/, "");
 
 		for (const iconPath of ["/icon-192x192.png", "/icon-512x512.png"]) {
 			const response = await request.get(`${baseURL}${iconPath}`);
-			expect(response.status(), `Expected ${iconPath} to respond with 200`).toBe(200);
+			expect(
+				response.status(),
+				`Expected ${iconPath} to respond with 200`,
+			).toBe(200);
 
 			const body = await response.body();
 			// PNG signature magic bytes: \x89PNG
-			expect(body.length, `Expected ${iconPath} to be non-empty`).toBeGreaterThan(100);
+			expect(
+				body.length,
+				`Expected ${iconPath} to be non-empty`,
+			).toBeGreaterThan(100);
 			expect(body.subarray(0, 4)).toEqual(
 				Buffer.from([0x89, 0x50, 0x4e, 0x47]),
 			);

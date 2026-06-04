@@ -44,7 +44,7 @@ import { setPractice } from "@/stores/practice";
 
 export interface CfTestApi {
 	/**
-	 * Dispose: closes the active sql.js DB handles. Call before deleting
+	 * Dispose: closes the active browser SQLite DB handles. Call before deleting
 	 * IndexedDB to avoid "database is locked" errors.
 	 */
 	dispose(): void;
@@ -174,7 +174,7 @@ async function withLocalOnlyWrites(
 		await new Promise((r) => setTimeout(r, 100));
 	}
 
-	// 3. Get the raw sql.js Database instance and suppress sync triggers.
+	// 3. Get the raw browser SQLite database instance and suppress sync triggers.
 	//    suppressSyncTriggers / enableSyncTriggers are the stable oosync API
 	//    for this; they handle all mutable-table triggers without us needing to
 	//    hard-code trigger names or query sqlite_master manually.

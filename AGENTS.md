@@ -13,14 +13,14 @@ CubeFSRS is a work in progress, and some architecture docs describe the destinat
 Current reality on disk:
 
 - This is a SolidJS + Vite application under `src/**`
-- The app currently contains Firebase-based services and local browser persistence
-- There is no visible `oosync.codegen.config.json`, worker package, or Supabase migration structure in the current repo root
+- The app still contains some Firebase-era services and local browser persistence
+- The repo now includes `oosync.codegen.config.json`, a `worker/` package, Supabase migrations, and generated oosync artifacts, but this integration is younger than TuneTrees and should be treated as less battle-tested
 - `@rhizome/core` is discussed architecturally, but it is not currently listed as a dependency in `package.json`
 
 Target direction described in docs:
 
 - tenant isolation in a shared Supabase instance
-- offline-first SQLite + oosync runtime
+- offline-first SQLite WASM + oosync runtime
 - shared logic pulled from Rhizome
 
 Default rule: unless the user explicitly asks you to build toward the target architecture, prefer changes that fit the current app structure and existing dependencies.
@@ -61,7 +61,7 @@ Prefer following this structure rather than inventing a new one unless the task 
 
 - Cube-specific domain logic belongs here, not in Rhizome or oosync.
 - Shared logic should only move to Rhizome when it is genuinely reusable and the dependency path is real, not just planned.
-- Do not assume Supabase/oosync boundaries already exist in this repo just because the architecture docs describe them.
+- Verify Supabase/oosync boundaries against the current files before extending them; they exist now, but some older Firebase-era code and docs may still be present.
 - If you introduce new cross-repo integration, document whether it is current-state compatible or a deliberate step toward the target architecture.
 
 ## Firebase and Persistence Guidance
