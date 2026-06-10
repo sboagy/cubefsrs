@@ -1,0 +1,16 @@
+/**
+ * e2e/tsconfig.json
+ *
+ * TypeScript config for Playwright E2E tests.
+ * Extends root tsconfig and adds Node + Playwright types.
+ */
+{
+	"extends": "../tsconfig.json",
+	"compilerOptions": {
+		"types": ["node", "@playwright/test"],
+		"moduleResolution": "bundler",
+		"module": "preserve",
+		"ignoreDeprecations": "6.0"
+	},
+	"include": ["./**/*.ts", "../src/**/*.ts", "../shared/**/*.ts"]
+}
