@@ -67,7 +67,7 @@
 		"@types/node": "^22.7.5",
 		"@types/sql.js": "^1.4.9",
 		"@tailwindcss/vite": "^4.2.2",
-		"@vitest/coverage-v8": "^3.0.0",
+		"@vitest/coverage-v8": "^4.1.8",
 		"dotenv": "^16.4.5",
 		"drizzle-kit": "^0.31.9",
 		"jsdom": "^25.0.1",
@@ -80,6 +80,6 @@
 		"vite-plugin-pwa": "^1.2.0",
 		"vite-plugin-solid": "^2.11.11",
 		"vite-plugin-static-copy": "^3.3.0",
-		"vitest": "^3.0.0"
+		"vitest": "^4.1.8"
 	}
 }
