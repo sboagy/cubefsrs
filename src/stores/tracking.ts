@@ -378,11 +378,7 @@ export function ingestMove(move: string) {
 	const expectNorm = norm(next);
 
 	// Early rotation calibration
-	if (
-		hadNoAcceptedMoves &&
-		!tracking.eventTransform &&
-		!_didEarlyCalibration
-	) {
+	if (hadNoAcceptedMoves && !tracking.eventTransform && !_didEarlyCalibration) {
 		const expectedTok = tracking.canonical[nextIndex];
 		if (expectedTok) {
 			const acceptable = new Set<string>();
@@ -679,10 +675,7 @@ export function ingestMove(move: string) {
 		setTracking("currentMoveIndex", nextIndex);
 		_progressPatternRaw = applied;
 		setTracking("badAlg", []);
-		setTracking("acceptedDeviceMoves", [
-			...tracking.acceptedDeviceMoves,
-			move,
-		]);
+		setTracking("acceptedDeviceMoves", [...tracking.acceptedDeviceMoves, move]);
 		advancePastRotations();
 		recomputeDisplay();
 		return;
@@ -792,10 +785,7 @@ export function ingestMove(move: string) {
 
 	// Record mistake
 	const bad = [...tracking.badAlg];
-	if (
-		bad[bad.length - 1] !== logical ||
-		wrongDirectionQuarterOnExpectedDouble
-	)
+	if (bad[bad.length - 1] !== logical || wrongDirectionQuarterOnExpectedDouble)
 		bad.push(logical);
 	if (bad.length > 4) bad.splice(0, bad.length - 4);
 	setTracking("badAlg", bad);

@@ -35,11 +35,9 @@ test.describe("PWA-002: Offline App Shell", () => {
 		page,
 		context,
 	}) => {
-		const swOrigin =
-			(test.info().project.use.baseURL ?? "http://localhost:4174").replace(
-				/\/$/,
-				"",
-			);
+		const swOrigin = (
+			test.info().project.use.baseURL ?? "http://localhost:4174"
+		).replace(/\/$/, "");
 
 		// --- Step 1: Load the app and wait for SW to activate ---
 		await page.goto("/", { waitUntil: "networkidle" });
@@ -66,6 +64,8 @@ test.describe("PWA-002: Offline App Shell", () => {
 
 		// Verify we are NOT on the browser's built-in offline error page.
 		const bodyText = await page.locator("body").innerText();
-		expect(bodyText).not.toMatch(/no internet|ERR_INTERNET_DISCONNECTED|offline/i);
+		expect(bodyText).not.toMatch(
+			/no internet|ERR_INTERNET_DISCONNECTED|offline/i,
+		);
 	});
 });
