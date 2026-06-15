@@ -146,8 +146,10 @@ jobs:
         id: cache-supabase
         uses: actions/cache@v4
         with:
-          path: /usr/local/bin/supabase
-          key: ${{ runner.os }}-supabase-cli-v1.200.0
+          path: |
+            /usr/local/bin/supabase
+            /usr/local/bin/supabase-go
+          key: ${{ runner.os }}-supabase-cli-v1.200.1
           restore-keys: |
             ${{ runner.os }}-supabase-cli-v1.
 
@@ -156,7 +158,9 @@ jobs:
         run: |
           mkdir -p /tmp/supabase-cli
           curl -fsSL https://github.com/supabase/cli/releases/latest/download/supabase_linux_amd64.tar.gz | tar -xz -C /tmp/supabase-cli
-          sudo mv -f /tmp/supabase-cli/supabase /usr/local/bin/
+          test -x /tmp/supabase-cli/supabase-go
+          sudo install -m 0755 /tmp/supabase-cli/supabase /usr/local/bin/supabase
+          sudo install -m 0755 /tmp/supabase-cli/supabase-go /usr/local/bin/supabase-go
           rm -rf /tmp/supabase-cli
 
       - name: Cache Supabase Docker Images
@@ -428,8 +432,10 @@ jobs:
         id: cache-supabase-pwa
         uses: actions/cache@v4
         with:
-          path: /usr/local/bin/supabase
-          key: ${{ runner.os }}-supabase-cli-v1.200.0
+          path: |
+            /usr/local/bin/supabase
+            /usr/local/bin/supabase-go
+          key: ${{ runner.os }}-supabase-cli-v1.200.1
           restore-keys: |
             ${{ runner.os }}-supabase-cli-v1.
 
@@ -438,7 +444,9 @@ jobs:
         run: |
           mkdir -p /tmp/supabase-cli
           curl -fsSL https://github.com/supabase/cli/releases/latest/download/supabase_linux_amd64.tar.gz | tar -xz -C /tmp/supabase-cli
-          sudo mv -f /tmp/supabase-cli/supabase /usr/local/bin/
+          test -x /tmp/supabase-cli/supabase-go
+          sudo install -m 0755 /tmp/supabase-cli/supabase /usr/local/bin/supabase
+          sudo install -m 0755 /tmp/supabase-cli/supabase-go /usr/local/bin/supabase-go
           rm -rf /tmp/supabase-cli
 
       - name: Cache Supabase Docker Images
