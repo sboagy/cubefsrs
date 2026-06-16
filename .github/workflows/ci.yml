@@ -290,14 +290,9 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-playwright-
 
-      - name: Install Playwright System Dependencies
-        working-directory: cubefsrs
-        run: npx playwright install-deps chromium
-
       - name: Install Playwright Browsers
-        if: steps.cache-playwright.outputs.cache-hit != 'true'
         working-directory: cubefsrs
-        run: npx playwright install chromium
+        run: node_modules/.bin/playwright install --with-deps chromium
 
       # Configure the sync worker .dev.vars using the local Supabase instance.
       # The JWT secret is the known local Supabase default for CI.
@@ -537,14 +532,8 @@ jobs:
             ${{ runner.os }}-playwright-
 
       - name: Install Playwright Browsers
-        if: steps.cache-playwright-pwa.outputs.cache-hit != 'true'
         working-directory: cubefsrs
-        run: npx playwright install --with-deps chromium
-
-      - name: Install Playwright System Dependencies
-        if: steps.cache-playwright-pwa.outputs.cache-hit == 'true'
-        working-directory: cubefsrs
-        run: npx playwright install-deps chromium
+        run: node_modules/.bin/playwright install --with-deps chromium
 
       - name: Create Playwright output directories
         working-directory: cubefsrs
