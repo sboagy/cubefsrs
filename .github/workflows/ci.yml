@@ -297,8 +297,6 @@ jobs:
       - name: Install Playwright Browsers
         if: steps.cache-playwright.outputs.cache-hit != 'true'
         working-directory: cubefsrs
-        env:
-          PLAYWRIGHT_DOWNLOAD_CONNECTION_TIMEOUT: "300000"
         run: npx playwright install chromium
 
       # Configure the sync worker .dev.vars using the local Supabase instance.
