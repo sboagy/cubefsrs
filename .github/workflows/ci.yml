@@ -181,8 +181,24 @@ jobs:
       - name: Install Supabase CLI
         if: steps.cache-supabase.outputs.cache-hit != 'true'
         run: |
-          mkdir -p /tmp/supabase-cli
-          curl -fsSL --proto "=https" --tlsv1.2 https://github.com/supabase/cli/releases/download/v2.106.0/supabase_2.106.0_linux_amd64.tar.gz | tar -xz -C /tmp/supabase-cli
+          for attempt in 1 2 3; do
+            echo "Supabase CLI install attempt $attempt/3..."
+            rm -rf /tmp/supabase-cli && mkdir -p /tmp/supabase-cli
+            if timeout 120 curl -fsSL --proto "=https" --tlsv1.2 \
+                https://github.com/supabase/cli/releases/download/v2.106.0/supabase_2.106.0_linux_amd64.tar.gz \
+                | tar -xz -C /tmp/supabase-cli \
+              && test -x /tmp/supabase-cli/supabase; then
+              echo "✅ Install succeeded on attempt $attempt"
+              break
+            fi
+            if [ "$attempt" -lt 3 ]; then
+              echo "⚠️ Install failed/timed out on attempt $attempt, retrying in 10s..."
+              sleep 10
+            else
+              echo "❌ Install failed after 3 attempts"
+              exit 1
+            fi
+          done
           sudo mv -f /tmp/supabase-cli/supabase /usr/local/bin/
           rm -rf /tmp/supabase-cli
 
@@ -475,8 +491,24 @@ jobs:
       - name: Install Supabase CLI
         if: steps.cache-supabase.outputs.cache-hit != 'true'
         run: |
-          mkdir -p /tmp/supabase-cli
-          curl -fsSL --proto "=https" --tlsv1.2 https://github.com/supabase/cli/releases/download/v2.106.0/supabase_2.106.0_linux_amd64.tar.gz | tar -xz -C /tmp/supabase-cli
+          for attempt in 1 2 3; do
+            echo "Supabase CLI install attempt $attempt/3..."
+            rm -rf /tmp/supabase-cli && mkdir -p /tmp/supabase-cli
+            if timeout 120 curl -fsSL --proto "=https" --tlsv1.2 \
+                https://github.com/supabase/cli/releases/download/v2.106.0/supabase_2.106.0_linux_amd64.tar.gz \
+                | tar -xz -C /tmp/supabase-cli \
+              && test -x /tmp/supabase-cli/supabase; then
+              echo "✅ Install succeeded on attempt $attempt"
+              break
+            fi
+            if [ "$attempt" -lt 3 ]; then
+              echo "⚠️ Install failed/timed out on attempt $attempt, retrying in 10s..."
+              sleep 10
+            else
+              echo "❌ Install failed after 3 attempts"
+              exit 1
+            fi
+          done
           sudo mv -f /tmp/supabase-cli/supabase /usr/local/bin/
           rm -rf /tmp/supabase-cli
 
