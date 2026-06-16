@@ -17,7 +17,7 @@
 	"dependencies": {
 		"drizzle-orm": "^0.45.2",
 		"jose": "^6.1.2",
-		"oosync": "git+https://github.com/sboagy/oosync.git#667-upg-sqlite-wasm",
+		"oosync": "git+https://github.com/sboagy/oosync.git#main",
 		"postgres": "^3.0.0"
 	}
 }
