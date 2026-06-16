@@ -15,8 +15,6 @@
 		"lint": "biome lint src e2e tests worker",
 		"format": "biome format --write src e2e tests worker",
 		"format:check": "biome format src e2e tests worker",
-		"format:prettier": "prettier --write \"src/**/*.{ts,tsx,js,jsx}\" \"e2e/**/*.{ts,tsx,js,jsx}\" \"tests/**/*.{ts,tsx,js,jsx}\"",
-		"format:prettier:check": "prettier --check \"src/**/*.{ts,tsx,js,jsx}\" \"e2e/**/*.{ts,tsx,js,jsx}\" \"tests/**/*.{ts,tsx,js,jsx}\"",
 		"check": "biome check src e2e tests worker",
 		"fix": "biome check --write src e2e tests worker",
 		"typecheck": "tsc --noEmit -p tsconfig.json",
