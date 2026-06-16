@@ -118,8 +118,9 @@ export default defineConfig({
 	// `npm run test:e2e` works without extra env vars.
 	webServer: [
 		// ── Dev server + worker (needed by setup/main E2E; not for PWA-only runs) ──
-		...(!process.env.PLAYWRIGHT_PWA_ONLY
-			? [
+		...(process.env.PLAYWRIGHT_PWA_ONLY
+			? []
+			: [
 					// App dev server — MUST be started with dev:test so MODE === 'test'
 					// which is required for __cfTestApi to attach in CubeAuthProvider.
 					{
@@ -140,8 +141,7 @@ export default defineConfig({
 						reuseExistingServer: !process.env.CI,
 						timeout: 120 * 1000,
 					},
-			  ]
-			: []),
+				]),
 		// ── Preview server (needed for PWA offline tests; locally always included) ──
 		// In CI: only included when PLAYWRIGHT_PWA_ONLY=1 (test-pwa-offline job).
 		// In the sharded matrix jobs PLAYWRIGHT_PWA_ONLY is not set so this entry
@@ -154,7 +154,7 @@ export default defineConfig({
 						reuseExistingServer: !process.env.CI,
 						timeout: 30 * 1000,
 					},
-			  ]
+				]
 			: []),
 	],
 });

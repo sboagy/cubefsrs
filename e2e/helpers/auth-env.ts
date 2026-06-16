@@ -13,6 +13,6 @@ export function getRequiredTestPassword(context: string): string {
 	}
 
 	throw new Error(
-		`[${context}] Missing ALICE_TEST_PASSWORD or TEST_USER_PASSWORD. Inject the shared test password from 1Password before running this test.`,
+		`[${context}] Missing ALICE_TEST_PASSWORD or TEST_USER_PASSWORD. Set the shared test password env var before running E2E auth tests.`,
 	);
 }
