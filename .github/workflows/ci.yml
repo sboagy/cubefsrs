@@ -168,31 +168,22 @@ jobs:
             fi
           done
 
-      # --- Supabase Setup ---
-      # Supabase is started from the rhizome directory because rhizome owns
-      # the shared local supabase config.toml.
+      # --- Supabase Setup (from Rhizome — the shared multi-tenant instance) ---
       - name: Cache Supabase CLI
         id: cache-supabase
         uses: actions/cache@v5
         with:
-          path: |
-            /usr/local/bin/supabase
-            /usr/local/bin/supabase-go
-          key: ${{ runner.os }}-supabase-cli-v1.200.1
+          path: /usr/local/bin/supabase
+          key: ${{ runner.os }}-supabase-cli-v2.106.0
           restore-keys: |
-            ${{ runner.os }}-supabase-cli-v1.
+            ${{ runner.os }}-supabase-cli-v2.
 
       - name: Install Supabase CLI
         if: steps.cache-supabase.outputs.cache-hit != 'true'
         run: |
           mkdir -p /tmp/supabase-cli
-          curl -fsSL https://github.com/supabase/cli/releases/download/v1.200.1/supabase_linux_amd64.tar.gz \
-            -o /tmp/supabase-cli/supabase_linux_amd64.tar.gz
-          echo "53d32f9d1e913cb3e8a92fccfc49987d813ec841557b0b45671f45c5ac8e9c6e  /tmp/supabase-cli/supabase_linux_amd64.tar.gz" | sha256sum -c -
-          tar -xz -C /tmp/supabase-cli -f /tmp/supabase-cli/supabase_linux_amd64.tar.gz
-          test -x /tmp/supabase-cli/supabase-go
-          sudo install -m 0755 /tmp/supabase-cli/supabase /usr/local/bin/supabase
-          sudo install -m 0755 /tmp/supabase-cli/supabase-go /usr/local/bin/supabase-go
+          curl -fsSL --proto "=https" --tlsv1.2 https://github.com/supabase/cli/releases/download/v2.106.0/supabase_2.106.0_linux_amd64.tar.gz | tar -xz -C /tmp/supabase-cli
+          sudo mv -f /tmp/supabase-cli/supabase /usr/local/bin/
           rm -rf /tmp/supabase-cli
 
       - name: Cache Supabase Docker Images
@@ -200,7 +191,7 @@ jobs:
         uses: actions/cache@v5
         with:
           path: ~/supabase-docker-images.tar
-          key: ${{ runner.os }}-supabase-docker-v1.200.0
+          key: ${{ runner.os }}-supabase-docker-v2.106.0
           restore-keys: |
             ${{ runner.os }}-supabase-docker-
 
@@ -471,29 +462,22 @@ jobs:
             fi
           done
 
-      # --- Supabase Setup (same as main test job) ---
+      # --- Supabase Setup (from Rhizome — the shared multi-tenant instance) ---
       - name: Cache Supabase CLI
-        id: cache-supabase-pwa
+        id: cache-supabase
         uses: actions/cache@v5
         with:
-          path: |
-            /usr/local/bin/supabase
-            /usr/local/bin/supabase-go
-          key: ${{ runner.os }}-supabase-cli-v1.200.1
+          path: /usr/local/bin/supabase
+          key: ${{ runner.os }}-supabase-cli-v2.106.0
           restore-keys: |
-            ${{ runner.os }}-supabase-cli-v1.
+            ${{ runner.os }}-supabase-cli-v2.
 
       - name: Install Supabase CLI
-        if: steps.cache-supabase-pwa.outputs.cache-hit != 'true'
+        if: steps.cache-supabase.outputs.cache-hit != 'true'
         run: |
           mkdir -p /tmp/supabase-cli
-          curl -fsSL https://github.com/supabase/cli/releases/download/v1.200.1/supabase_linux_amd64.tar.gz \
-            -o /tmp/supabase-cli/supabase_linux_amd64.tar.gz
-          echo "53d32f9d1e913cb3e8a92fccfc49987d813ec841557b0b45671f45c5ac8e9c6e  /tmp/supabase-cli/supabase_linux_amd64.tar.gz" | sha256sum -c -
-          tar -xz -C /tmp/supabase-cli -f /tmp/supabase-cli/supabase_linux_amd64.tar.gz
-          test -x /tmp/supabase-cli/supabase-go
-          sudo install -m 0755 /tmp/supabase-cli/supabase /usr/local/bin/supabase
-          sudo install -m 0755 /tmp/supabase-cli/supabase-go /usr/local/bin/supabase-go
+          curl -fsSL --proto "=https" --tlsv1.2 https://github.com/supabase/cli/releases/download/v2.106.0/supabase_2.106.0_linux_amd64.tar.gz | tar -xz -C /tmp/supabase-cli
+          sudo mv -f /tmp/supabase-cli/supabase /usr/local/bin/
           rm -rf /tmp/supabase-cli
 
       - name: Cache Supabase Docker Images
@@ -501,7 +485,7 @@ jobs:
         uses: actions/cache@v5
         with:
           path: ~/supabase-docker-images.tar
-          key: ${{ runner.os }}-supabase-docker-v1.200.0
+          key: ${{ runner.os }}-supabase-docker-v2.106.0
           restore-keys: |
             ${{ runner.os }}-supabase-docker-
 
