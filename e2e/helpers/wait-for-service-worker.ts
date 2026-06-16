@@ -40,9 +40,13 @@ export async function waitForServiceWorker(
 	);
 
 	if (worker) {
-		console.log("[waitForServiceWorker] Worker already registered — skipping wait.");
+		console.log(
+			"[waitForServiceWorker] Worker already registered — skipping wait.",
+		);
 	} else {
-		console.log(`[waitForServiceWorker] Waiting for SW registration at: ${url}`);
+		console.log(
+			`[waitForServiceWorker] Waiting for SW registration at: ${url}`,
+		);
 		try {
 			worker = await context.waitForEvent("serviceworker", {
 				predicate: (sw: Worker) => sw.url().startsWith(targetOrigin),

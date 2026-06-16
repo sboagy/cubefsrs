@@ -27,12 +27,15 @@ test.describe("PWA-001: Service Worker Registration", () => {
 		await page.goto("/", { waitUntil: "domcontentloaded" });
 
 		// Wait for the SW to finish activating (Workbox completes precache here).
-		const swOrigin =
-			(test.info().project.use.baseURL ?? "http://localhost:4174").replace(
-				/\/$/,
-				"",
-			);
-		const sw = await waitForServiceWorker(context, swOrigin, "activated", 30_000);
+		const swOrigin = (
+			test.info().project.use.baseURL ?? "http://localhost:4174"
+		).replace(/\/$/, "");
+		const sw = await waitForServiceWorker(
+			context,
+			swOrigin,
+			"activated",
+			30_000,
+		);
 
 		// The SW URL should be relative to the preview origin — not a CDN etc.
 		expect(sw.url()).toContain(swOrigin);

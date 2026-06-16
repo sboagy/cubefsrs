@@ -6,7 +6,6 @@
  */
 
 import {
-	index,
 	integer,
 	primaryKey,
 	real,
