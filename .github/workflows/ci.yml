@@ -139,6 +139,23 @@ jobs:
         working-directory: cubefsrs
         run: npm ci
 
+      # Install Playwright browsers early, before Docker images are pulled and
+      # ~/supabase-docker-images.tar is written. Extracting 167 MB of Chrome on
+      # a disk already occupied by a multi-GB Docker tar causes I/O pressure
+      # that silently hangs the extraction.
+      - name: Cache Playwright Browsers
+        id: cache-playwright
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-${{ hashFiles('cubefsrs/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-playwright-
+
+      - name: Install Playwright Browsers
+        working-directory: cubefsrs
+        run: node_modules/.bin/playwright install --with-deps chromium
+
       # --- Supabase Setup ---
       # Supabase is started from the rhizome directory because rhizome owns
       # the shared local supabase config.toml.
@@ -219,17 +236,17 @@ jobs:
 
           # Wait for Postgres to accept connections (it comes up before PostgREST).
           echo "Waiting for PostgreSQL on 127.0.0.1:54322..."
-          for i in $(seq 1 120); do
+          for i in $(seq 1 600); do
             if pg_isready -h 127.0.0.1 -p 54322 -U postgres -q 2>/dev/null; then
               echo "PostgreSQL ready (attempt $i)"
               break
             fi
-            if [ "$i" -eq 120 ]; then
+            if [ "$i" -eq 600 ]; then
               echo "Timed out waiting for PostgreSQL"
               kill "$SUPABASE_PID" 2>/dev/null || true
               exit 1
             fi
-            sleep 0.5
+            sleep 1
           done
 
           # Create the empty cubefsrs schema so PostgREST can load its cache.
@@ -279,20 +296,6 @@ jobs:
       - name: Check SQLite schema via Postgres introspection
         working-directory: cubefsrs
         run: npm run codegen:schema:check
-
-      # --- Playwright Setup ---
-      - name: Cache Playwright Browsers
-        id: cache-playwright
-        uses: actions/cache@v4
-        with:
-          path: ~/.cache/ms-playwright
-          key: ${{ runner.os }}-playwright-${{ hashFiles('cubefsrs/package-lock.json') }}
-          restore-keys: |
-            ${{ runner.os }}-playwright-
-
-      - name: Install Playwright Browsers
-        working-directory: cubefsrs
-        run: node_modules/.bin/playwright install --with-deps chromium
 
       # Configure the sync worker .dev.vars using the local Supabase instance.
       # The JWT secret is the known local Supabase default for CI.
@@ -421,6 +424,20 @@ jobs:
         working-directory: cubefsrs
         run: npm ci
 
+      # Install Playwright browsers early — same reason as in the test job.
+      - name: Cache Playwright Browsers (PWA job)
+        id: cache-playwright-pwa
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-${{ hashFiles('cubefsrs/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-playwright-
+
+      - name: Install Playwright Browsers
+        working-directory: cubefsrs
+        run: node_modules/.bin/playwright install --with-deps chromium
+
       # --- Supabase Setup (same as main test job) ---
       - name: Cache Supabase CLI
         id: cache-supabase-pwa
@@ -478,17 +495,17 @@ jobs:
           supabase start &
           SUPABASE_PID=$!
           echo "Waiting for PostgreSQL on 127.0.0.1:54322..."
-          for i in $(seq 1 120); do
+          for i in $(seq 1 600); do
             if pg_isready -h 127.0.0.1 -p 54322 -U postgres -q 2>/dev/null; then
               echo "PostgreSQL ready (attempt $i)"
               break
             fi
-            if [ "$i" -eq 120 ]; then
+            if [ "$i" -eq 600 ]; then
               echo "Timed out waiting for PostgreSQL"
               kill "$SUPABASE_PID" 2>/dev/null || true
               exit 1
             fi
-            sleep 0.5
+            sleep 1
           done
           echo "Creating cubefsrs schema stub..."
           psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" \
@@ -521,19 +538,6 @@ jobs:
       - name: Build Preview Bundle
         working-directory: cubefsrs
         run: npm run build:preview-local
-
-      - name: Cache Playwright Browsers (PWA job)
-        id: cache-playwright-pwa
-        uses: actions/cache@v4
-        with:
-          path: ~/.cache/ms-playwright
-          key: ${{ runner.os }}-playwright-${{ hashFiles('cubefsrs/package-lock.json') }}
-          restore-keys: |
-            ${{ runner.os }}-playwright-
-
-      - name: Install Playwright Browsers
-        working-directory: cubefsrs
-        run: node_modules/.bin/playwright install --with-deps chromium
 
       - name: Create Playwright output directories
         working-directory: cubefsrs
