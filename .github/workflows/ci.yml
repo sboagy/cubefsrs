@@ -154,7 +154,21 @@ jobs:
 
       - name: Install Playwright Browsers
         working-directory: cubefsrs
-        run: node_modules/.bin/playwright install --with-deps chromium
+        run: |
+          for attempt in 1 2 3; do
+            echo "Playwright install attempt $attempt/3..."
+            if timeout 360 node_modules/.bin/playwright install --with-deps chromium; then
+              echo "✅ Install succeeded on attempt $attempt"
+              break
+            fi
+            if [ "$attempt" -lt 3 ]; then
+              echo "⚠️ Install failed/timed out on attempt $attempt, retrying in 30s..."
+              sleep 30
+            else
+              echo "❌ Install failed after 3 attempts"
+              exit 1
+            fi
+          done
 
       # --- Supabase Setup ---
       # Supabase is started from the rhizome directory because rhizome owns
@@ -436,7 +450,21 @@ jobs:
 
       - name: Install Playwright Browsers
         working-directory: cubefsrs
-        run: node_modules/.bin/playwright install --with-deps chromium
+        run: |
+          for attempt in 1 2 3; do
+            echo "Playwright install attempt $attempt/3..."
+            if timeout 360 node_modules/.bin/playwright install --with-deps chromium; then
+              echo "✅ Install succeeded on attempt $attempt"
+              break
+            fi
+            if [ "$attempt" -lt 3 ]; then
+              echo "⚠️ Install failed/timed out on attempt $attempt, retrying in 30s..."
+              sleep 30
+            else
+              echo "❌ Install failed after 3 attempts"
+              exit 1
+            fi
+          done
 
       # --- Supabase Setup (same as main test job) ---
       - name: Cache Supabase CLI
