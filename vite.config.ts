@@ -54,11 +54,15 @@ export default defineConfig(() => {
 					],
 				},
 				workbox: {
-					// WASM files (cubing, sql.js) can be large; raise the limit
+					// WASM files (cubing, SQLite) can be large; raise the limit
 					maximumFileSizeToCacheInBytes: 10 * 1024 * 1024,
 					// Precache all static assets including WASM and SQLite migration files
 					globPatterns: [
 						"**/*.{js,css,html,ico,png,svg,woff,woff2,wasm,sql}",
+					],
+					globIgnores: [
+						"**/sqlite3-worker1*",
+						"**/sqlite3-opfs-async-proxy*",
 					],
 					runtimeCaching: [
 						{

@@ -93,7 +93,7 @@ const CubeAuthProvider: ParentComponent = (props) => {
 				// Supabase fires both getSession() and onAuthStateChange(SIGNED_IN)
 				// near-simultaneously on page load; the second call must be a no-op
 				// to avoid creating an orphaned SyncEngine whose timers later run
-				// against a closed sql.js database and produce "out of memory" errors.
+				// against a closed browser SQLite database and produce "out of memory" errors.
 				//
 				// We check syncSessionUserId ONLY (not stopSync) because both calls
 				// can arrive before startSyncWorker returns and sets stopSync. The

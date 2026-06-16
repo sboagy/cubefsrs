@@ -35,8 +35,8 @@ export const browserSqliteClient = createBrowserSqliteClient({
 		outboxBackupKeyPrefix: "cubefsrs-outbox-backup",
 		lastSyncTimestampKeyPrefix: "CF_LAST_SYNC_TIMESTAMP",
 	},
-	databaseVersion: 3,
-	schemaVersion: "1.0.0",
+	databaseVersion: 4,
+	schemaVersion: "1.0.0-sqlite-wasm-engine",
 	migrationFiles: [
 		"/drizzle/migrations/sqlite/0000_sticky_riptide.sql",
 		"/drizzle/migrations/sqlite/0001_fix_catalog_null_unique.sql",

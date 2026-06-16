@@ -105,7 +105,7 @@ VitePWA({
   },
   workbox: {
     maximumFileSizeToCacheInBytes: 10 * 1024 * 1024,
-    // Cache all static assets including WASM (cubing + sql.js) and SQL migration files
+    // Cache all static assets including WASM (cubing + SQLite) and SQL migration files
     globPatterns: ["**/*.{js,css,html,ico,png,svg,woff,woff2,wasm,sql}"],
     runtimeCaching: [
       {
