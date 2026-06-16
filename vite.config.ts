@@ -61,8 +61,8 @@ export default defineConfig(() => {
 						"**/*.{js,css,html,ico,png,svg,woff,woff2,wasm,sql}",
 					],
 					globIgnores: [
-						"**/sqlite3-worker1-*",
-						"**/sqlite3-opfs-async-proxy-*",
+						"**/sqlite3-worker1*",
+						"**/sqlite3-opfs-async-proxy*",
 					],
 					runtimeCaching: [
 						{

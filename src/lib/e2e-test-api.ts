@@ -28,7 +28,7 @@
 import { getSyncRuntime } from "@oosync/sync";
 import { and, count, eq, inArray, lte } from "drizzle-orm";
 import type { SqliteDatabase } from "@/lib/db/client-sqlite";
-import { persistDb, schema } from "@/lib/db/client-sqlite";
+import { closeDb, persistDb, schema } from "@/lib/db/client-sqlite";
 import {
 	loadAlgsFromDb,
 	loadFsrsFromDb,
@@ -222,9 +222,7 @@ export function attachCfTestApi(controls: CfTestApiControls): void {
 
 	const api: CfTestApi = {
 		dispose() {
-			// closeDb is already called by CubeAuthProvider on sign-out;
-			// this is a no-op hook for the fixture to call without needing
-			// to know the internal DB lifecycle.
+			closeDb();
 		},
 
 		async rehydrateStores() {
