@@ -25,6 +25,7 @@ import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { expect, test as setup } from "@playwright/test";
 import { config } from "dotenv";
+import { getRequiredTestPassword } from "../helpers/auth-env";
 import {
 	AUTH_STATE_DB_VERSION_STORAGE_KEY,
 	AUTH_STATE_SNAPSHOT_VERSION_STORAGE_KEY,
@@ -32,7 +33,6 @@ import {
 	CURRENT_AUTH_STATE_SNAPSHOT_VERSION,
 	readStoredAuthStateMetadata,
 } from "../helpers/auth-state";
-import { getRequiredTestPassword } from "../helpers/auth-env";
 import { TEST_USERS } from "../helpers/test-users";
 import { BASE_URL } from "../test-config";
 

@@ -19,8 +19,6 @@ concurrency:
   cancel-in-progress: true
 
 # Opt into Node.js 24 for all JavaScript actions (required before June 2026 forced migration).
-# This silences Node.js 20 deprecation warnings, including 1password/install-cli-action@v2
-# which has no Node 24-native release yet.
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
   # vite-plugin-pwa@1.2.0 still advertises a Vite <=7 peer range even though
@@ -45,7 +43,7 @@ jobs:
         uses: actions/checkout@v5
 
       - name: Install 1Password CLI
-        uses: 1password/install-cli-action@v2
+        uses: 1password/install-cli-action@a5215d3a7f75c1629216c465ea9ab3ab399c4b71 # v4.0.0
 
       - name: Setup Node.js
         uses: actions/setup-node@v5
@@ -108,7 +106,7 @@ jobs:
           path: rhizome
 
       - name: Install 1Password CLI
-        uses: 1password/install-cli-action@v2
+        uses: 1password/install-cli-action@a5215d3a7f75c1629216c465ea9ab3ab399c4b71 # v4.0.0
 
       - name: Resolve test secrets from 1Password
         # Resolves the shared test-user password via 1Password so it is never
@@ -139,15 +137,48 @@ jobs:
         working-directory: cubefsrs
         run: npm ci
 
+      # Install Playwright browsers early, before Docker images are pulled and
+      # ~/supabase-docker-images.tar is written. Extracting 167 MB of Chrome on
+      # a disk already occupied by a multi-GB Docker tar causes I/O pressure
+      # that silently hangs the extraction.
+      - name: Cache Playwright Browsers
+        id: cache-playwright
+        uses: actions/cache@v5
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-${{ hashFiles('cubefsrs/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-playwright-
+
+      - name: Install Playwright Browsers
+        working-directory: cubefsrs
+        run: |
+          for attempt in 1 2 3; do
+            echo "Playwright install attempt $attempt/3..."
+            if timeout 360 node_modules/.bin/playwright install --with-deps chromium; then
+              echo "✅ Install succeeded on attempt $attempt"
+              break
+            fi
+            if [ "$attempt" -lt 3 ]; then
+              echo "⚠️ Install failed/timed out on attempt $attempt, retrying in 30s..."
+              sleep 30
+            else
+              echo "❌ Install failed after 3 attempts"
+              exit 1
+            fi
+          done
+
       # --- Supabase Setup ---
       # Supabase is started from the rhizome directory because rhizome owns
       # the shared local supabase config.toml.
       - name: Cache Supabase CLI
         id: cache-supabase
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
-          path: /usr/local/bin/supabase
-          key: ${{ runner.os }}-supabase-cli-v1.200.0
+          path: |
+            /usr/local/bin/supabase
+            /usr/local/bin/supabase-go
+          key: ${{ runner.os }}-supabase-cli-v1.200.1
           restore-keys: |
             ${{ runner.os }}-supabase-cli-v1.
 
@@ -155,13 +186,18 @@ jobs:
         if: steps.cache-supabase.outputs.cache-hit != 'true'
         run: |
           mkdir -p /tmp/supabase-cli
-          curl -fsSL https://github.com/supabase/cli/releases/latest/download/supabase_linux_amd64.tar.gz | tar -xz -C /tmp/supabase-cli
-          sudo mv -f /tmp/supabase-cli/supabase /usr/local/bin/
+          curl -fsSL https://github.com/supabase/cli/releases/download/v1.200.1/supabase_linux_amd64.tar.gz \
+            -o /tmp/supabase-cli/supabase_linux_amd64.tar.gz
+          echo "53d32f9d1e913cb3e8a92fccfc49987d813ec841557b0b45671f45c5ac8e9c6e  /tmp/supabase-cli/supabase_linux_amd64.tar.gz" | sha256sum -c -
+          tar -xz -C /tmp/supabase-cli -f /tmp/supabase-cli/supabase_linux_amd64.tar.gz
+          test -x /tmp/supabase-cli/supabase-go
+          sudo install -m 0755 /tmp/supabase-cli/supabase /usr/local/bin/supabase
+          sudo install -m 0755 /tmp/supabase-cli/supabase-go /usr/local/bin/supabase-go
           rm -rf /tmp/supabase-cli
 
       - name: Cache Supabase Docker Images
         id: cache-docker-images
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: ~/supabase-docker-images.tar
           key: ${{ runner.os }}-supabase-docker-v1.200.0
@@ -215,17 +251,21 @@ jobs:
 
           # Wait for Postgres to accept connections (it comes up before PostgREST).
           echo "Waiting for PostgreSQL on 127.0.0.1:54322..."
-          for i in $(seq 1 120); do
+          for i in $(seq 1 600); do
+            if ! kill -0 "$SUPABASE_PID" 2>/dev/null; then
+              echo "Supabase process exited unexpectedly"
+              exit 1
+            fi
             if pg_isready -h 127.0.0.1 -p 54322 -U postgres -q 2>/dev/null; then
               echo "PostgreSQL ready (attempt $i)"
               break
             fi
-            if [ "$i" -eq 120 ]; then
+            if [ "$i" -eq 600 ]; then
               echo "Timed out waiting for PostgreSQL"
               kill "$SUPABASE_PID" 2>/dev/null || true
               exit 1
             fi
-            sleep 0.5
+            sleep 1
           done
 
           # Create the empty cubefsrs schema so PostgREST can load its cache.
@@ -276,26 +316,6 @@ jobs:
         working-directory: cubefsrs
         run: npm run codegen:schema:check
 
-      # --- Playwright Setup ---
-      - name: Cache Playwright Browsers
-        id: cache-playwright
-        uses: actions/cache@v4
-        with:
-          path: ~/.cache/ms-playwright
-          key: ${{ runner.os }}-playwright-${{ hashFiles('cubefsrs/package-lock.json') }}
-          restore-keys: |
-            ${{ runner.os }}-playwright-
-
-      - name: Install Playwright Browsers
-        if: steps.cache-playwright.outputs.cache-hit != 'true'
-        working-directory: cubefsrs
-        run: npx playwright install --with-deps chromium
-
-      - name: Install Playwright System Dependencies
-        if: steps.cache-playwright.outputs.cache-hit == 'true'
-        working-directory: cubefsrs
-        run: npx playwright install-deps chromium
-
       # Configure the sync worker .dev.vars using the local Supabase instance.
       # The JWT secret is the known local Supabase default for CI.
       - name: Setup Cloudflare Worker
@@ -327,7 +347,7 @@ jobs:
 
       - name: Upload Playwright log (Shard ${{ matrix.shard }}/4)
         if: always()
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: playwright-log-${{ matrix.shard }}
           path: cubefsrs/playwright-logs/playwright-shard-${{ matrix.shard }}.log
@@ -335,7 +355,7 @@ jobs:
 
       - name: Upload blob report to GitHub Actions Artifacts
         if: always()
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: blob-report-${{ matrix.shard }}
           path: cubefsrs/blob-report/
@@ -343,7 +363,7 @@ jobs:
 
       - name: Upload Test Artifacts
         if: failure()
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: test-results-${{ matrix.shard }}
           path: cubefsrs/test-results/
@@ -393,7 +413,7 @@ jobs:
           path: rhizome
 
       - name: Install 1Password CLI
-        uses: 1password/install-cli-action@v2
+        uses: 1password/install-cli-action@a5215d3a7f75c1629216c465ea9ab3ab399c4b71 # v4.0.0
 
       - name: Resolve test secrets from 1Password
         # Resolves the shared test-user password via 1Password so it is never
@@ -423,13 +443,43 @@ jobs:
         working-directory: cubefsrs
         run: npm ci
 
+      # Install Playwright browsers early — same reason as in the test job.
+      - name: Cache Playwright Browsers (PWA job)
+        id: cache-playwright-pwa
+        uses: actions/cache@v5
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-${{ hashFiles('cubefsrs/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-playwright-
+
+      - name: Install Playwright Browsers
+        working-directory: cubefsrs
+        run: |
+          for attempt in 1 2 3; do
+            echo "Playwright install attempt $attempt/3..."
+            if timeout 360 node_modules/.bin/playwright install --with-deps chromium; then
+              echo "✅ Install succeeded on attempt $attempt"
+              break
+            fi
+            if [ "$attempt" -lt 3 ]; then
+              echo "⚠️ Install failed/timed out on attempt $attempt, retrying in 30s..."
+              sleep 30
+            else
+              echo "❌ Install failed after 3 attempts"
+              exit 1
+            fi
+          done
+
       # --- Supabase Setup (same as main test job) ---
       - name: Cache Supabase CLI
         id: cache-supabase-pwa
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
-          path: /usr/local/bin/supabase
-          key: ${{ runner.os }}-supabase-cli-v1.200.0
+          path: |
+            /usr/local/bin/supabase
+            /usr/local/bin/supabase-go
+          key: ${{ runner.os }}-supabase-cli-v1.200.1
           restore-keys: |
             ${{ runner.os }}-supabase-cli-v1.
 
@@ -437,13 +487,18 @@ jobs:
         if: steps.cache-supabase-pwa.outputs.cache-hit != 'true'
         run: |
           mkdir -p /tmp/supabase-cli
-          curl -fsSL https://github.com/supabase/cli/releases/latest/download/supabase_linux_amd64.tar.gz | tar -xz -C /tmp/supabase-cli
-          sudo mv -f /tmp/supabase-cli/supabase /usr/local/bin/
+          curl -fsSL https://github.com/supabase/cli/releases/download/v1.200.1/supabase_linux_amd64.tar.gz \
+            -o /tmp/supabase-cli/supabase_linux_amd64.tar.gz
+          echo "53d32f9d1e913cb3e8a92fccfc49987d813ec841557b0b45671f45c5ac8e9c6e  /tmp/supabase-cli/supabase_linux_amd64.tar.gz" | sha256sum -c -
+          tar -xz -C /tmp/supabase-cli -f /tmp/supabase-cli/supabase_linux_amd64.tar.gz
+          test -x /tmp/supabase-cli/supabase-go
+          sudo install -m 0755 /tmp/supabase-cli/supabase /usr/local/bin/supabase
+          sudo install -m 0755 /tmp/supabase-cli/supabase-go /usr/local/bin/supabase-go
           rm -rf /tmp/supabase-cli
 
       - name: Cache Supabase Docker Images
         id: cache-docker-pwa
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: ~/supabase-docker-images.tar
           key: ${{ runner.os }}-supabase-docker-v1.200.0
@@ -476,17 +531,21 @@ jobs:
           supabase start &
           SUPABASE_PID=$!
           echo "Waiting for PostgreSQL on 127.0.0.1:54322..."
-          for i in $(seq 1 120); do
+          for i in $(seq 1 600); do
+            if ! kill -0 "$SUPABASE_PID" 2>/dev/null; then
+              echo "Supabase process exited unexpectedly"
+              exit 1
+            fi
             if pg_isready -h 127.0.0.1 -p 54322 -U postgres -q 2>/dev/null; then
               echo "PostgreSQL ready (attempt $i)"
               break
             fi
-            if [ "$i" -eq 120 ]; then
+            if [ "$i" -eq 600 ]; then
               echo "Timed out waiting for PostgreSQL"
               kill "$SUPABASE_PID" 2>/dev/null || true
               exit 1
             fi
-            sleep 0.5
+            sleep 1
           done
           echo "Creating cubefsrs schema stub..."
           psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" \
@@ -520,25 +579,6 @@ jobs:
         working-directory: cubefsrs
         run: npm run build:preview-local
 
-      - name: Cache Playwright Browsers (PWA job)
-        id: cache-playwright-pwa
-        uses: actions/cache@v4
-        with:
-          path: ~/.cache/ms-playwright
-          key: ${{ runner.os }}-playwright-${{ hashFiles('cubefsrs/package-lock.json') }}
-          restore-keys: |
-            ${{ runner.os }}-playwright-
-
-      - name: Install Playwright Browsers
-        if: steps.cache-playwright-pwa.outputs.cache-hit != 'true'
-        working-directory: cubefsrs
-        run: npx playwright install --with-deps chromium
-
-      - name: Install Playwright System Dependencies
-        if: steps.cache-playwright-pwa.outputs.cache-hit == 'true'
-        working-directory: cubefsrs
-        run: npx playwright install-deps chromium
-
       - name: Create Playwright output directories
         working-directory: cubefsrs
         run: mkdir -p test-results
@@ -557,7 +597,7 @@ jobs:
 
       - name: Upload PWA test results
         if: always()
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: pwa-offline-results
           path: cubefsrs/test-results/
@@ -591,7 +631,7 @@ jobs:
         run: npm ci
 
       - name: Download blob reports from all shards
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@v8
         with:
           pattern: blob-report-*
           path: all-blob-reports
@@ -608,7 +648,7 @@ jobs:
           fi
 
       - name: Download Playwright logs
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@v8
         with:
           pattern: playwright-log-*
           path: all-playwright-logs
@@ -621,7 +661,7 @@ jobs:
 
       - name: Upload combined Playwright log
         if: always()
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: playwright-log-combined
           path: playwright-logs/
@@ -633,7 +673,7 @@ jobs:
 
       - name: Upload merged HTML report
         if: steps.blob-reports.outputs.found == 'true'
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: playwright-report
           path: playwright-report/
@@ -656,7 +696,7 @@ jobs:
         uses: actions/checkout@v5
 
       - name: Install 1Password CLI
-        uses: 1password/install-cli-action@v2
+        uses: 1password/install-cli-action@a5215d3a7f75c1629216c465ea9ab3ab399c4b71 # v4.0.0
 
       - name: Setup Node.js
         uses: actions/setup-node@v5
@@ -703,7 +743,7 @@ jobs:
         uses: actions/checkout@v5
 
       - name: Install 1Password CLI
-        uses: 1password/install-cli-action@v2
+        uses: 1password/install-cli-action@a5215d3a7f75c1629216c465ea9ab3ab399c4b71 # v4.0.0
 
       - name: Setup Node.js
         uses: actions/setup-node@v5
