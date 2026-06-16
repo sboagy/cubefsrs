@@ -173,7 +173,9 @@ jobs:
         id: cache-supabase
         uses: actions/cache@v5
         with:
-          path: /usr/local/bin/supabase
+          path: |
+            /usr/local/bin/supabase
+            /usr/local/bin/supabase-go
           key: ${{ runner.os }}-supabase-cli-v2.106.0
           restore-keys: |
             ${{ runner.os }}-supabase-cli-v2.
@@ -187,7 +189,8 @@ jobs:
             if timeout 120 curl -fsSL --proto "=https" --tlsv1.2 \
                 https://github.com/supabase/cli/releases/download/v2.106.0/supabase_2.106.0_linux_amd64.tar.gz \
                 | tar -xz -C /tmp/supabase-cli \
-              && test -x /tmp/supabase-cli/supabase; then
+              && test -x /tmp/supabase-cli/supabase \
+              && test -x /tmp/supabase-cli/supabase-go; then
               echo "✅ Install succeeded on attempt $attempt"
               break
             fi
@@ -199,7 +202,7 @@ jobs:
               exit 1
             fi
           done
-          sudo mv -f /tmp/supabase-cli/supabase /usr/local/bin/
+          sudo mv -f /tmp/supabase-cli/supabase /tmp/supabase-cli/supabase-go /usr/local/bin/
           rm -rf /tmp/supabase-cli
 
       - name: Cache Supabase Docker Images
@@ -483,7 +486,9 @@ jobs:
         id: cache-supabase
         uses: actions/cache@v5
         with:
-          path: /usr/local/bin/supabase
+          path: |
+            /usr/local/bin/supabase
+            /usr/local/bin/supabase-go
           key: ${{ runner.os }}-supabase-cli-v2.106.0
           restore-keys: |
             ${{ runner.os }}-supabase-cli-v2.
@@ -497,7 +502,8 @@ jobs:
             if timeout 120 curl -fsSL --proto "=https" --tlsv1.2 \
                 https://github.com/supabase/cli/releases/download/v2.106.0/supabase_2.106.0_linux_amd64.tar.gz \
                 | tar -xz -C /tmp/supabase-cli \
-              && test -x /tmp/supabase-cli/supabase; then
+              && test -x /tmp/supabase-cli/supabase \
+              && test -x /tmp/supabase-cli/supabase-go; then
               echo "✅ Install succeeded on attempt $attempt"
               break
             fi
@@ -509,7 +515,7 @@ jobs:
               exit 1
             fi
           done
-          sudo mv -f /tmp/supabase-cli/supabase /usr/local/bin/
+          sudo mv -f /tmp/supabase-cli/supabase /tmp/supabase-cli/supabase-go /usr/local/bin/
           rm -rf /tmp/supabase-cli
 
       - name: Cache Supabase Docker Images
