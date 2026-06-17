@@ -25,6 +25,7 @@ Staging uses:
 
 - `.env.staging.template`
 - Cloudflare Pages project `cubefsrs-pwa`, branch `staging`
+- Staging app URL `https://staging.cubefsrs-pwa.pages.dev`
 - Worker `cubefsrs-sync-worker-staging`
 - staging Supabase values from `op://rhizome/shared-staging/...`
 - a staging Hyperdrive binding in `worker/wrangler.toml`

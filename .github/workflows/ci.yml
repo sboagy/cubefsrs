@@ -836,7 +836,7 @@ jobs:
             --method POST \
             -f state="success" \
             -f environment="staging" \
-            -f environment_url="https://staging.cubefsrs.com" \
+            -f environment_url="https://staging.cubefsrs-pwa.pages.dev" \
             -f log_url="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}" \
             -f description="Staging deploy, catalog refresh, and smoke tests passed"
 

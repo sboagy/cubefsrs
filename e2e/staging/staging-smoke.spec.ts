@@ -19,7 +19,7 @@ const normalizePublicUrl = (value: string, name: string): string => {
 };
 
 const STAGING_BASE_URL = normalizePublicUrl(
-	process.env.STAGING_BASE_URL ?? "https://staging.cubefsrs.com",
+	process.env.STAGING_BASE_URL ?? "https://staging.cubefsrs-pwa.pages.dev",
 	"STAGING_BASE_URL",
 );
 const WORKER_URL = normalizePublicUrl(

@@ -2,7 +2,8 @@
 
 import { defineConfig, devices } from "@playwright/test";
 
-const baseURL = process.env.STAGING_BASE_URL ?? "https://staging.cubefsrs.com";
+const baseURL =
+	process.env.STAGING_BASE_URL ?? "https://staging.cubefsrs-pwa.pages.dev";
 
 export default defineConfig({
 	testDir: "./e2e/staging",
