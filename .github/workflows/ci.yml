@@ -12,11 +12,15 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
-  workflow_dispatch: # <-- This is your manual trigger
+  workflow_dispatch:
+    inputs:
+      skip_staging_data_refresh:
+        description: "Skip CubeFSRS staging catalog refresh before staging smoke tests"
+        type: boolean
+        default: false
 
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+permissions:
+  contents: read
 
 # Opt into Node.js 24 for all JavaScript actions (required before June 2026 forced migration).
 env:
@@ -34,6 +38,9 @@ jobs:
     name: Run Unit Tests
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    concurrency:
+      group: ci-fast-unit-${{ github.ref }}
+      cancel-in-progress: true
     environment: cubefsrs_ci_env
     env:
       OP_SERVICE_ACCOUNT_TOKEN: ${{ secrets.OP_SERVICE_ACCOUNT_TOKEN }}
@@ -64,6 +71,9 @@ jobs:
     name: Run Playwright Tests
     runs-on: ubuntu-latest
     needs: [test-unit]
+    concurrency:
+      group: ci-fast-e2e-${{ github.ref }}-${{ matrix.shard }}
+      cancel-in-progress: true
 
     strategy:
       fail-fast: false
@@ -395,6 +405,9 @@ jobs:
     runs-on: ubuntu-latest
     needs: [test-unit]
     timeout-minutes: 60
+    concurrency:
+      group: ci-fast-pwa-${{ github.ref }}
+      cancel-in-progress: true
     environment: cubefsrs_ci_env
     env:
       OP_SERVICE_ACCOUNT_TOKEN: ${{ secrets.OP_SERVICE_ACCOUNT_TOKEN }}
@@ -702,20 +715,38 @@ jobs:
           retention-days: 30
 
   # --------------------------------------------------------------------------
-  # JOB 3: DEPLOY
+  # JOB 5: STAGING DEPLOY + CATALOG REFRESH + SMOKE TESTS
   # --------------------------------------------------------------------------
-  deploy:
-    name: Deploy to Cloudflare Pages
+  deploy-staging:
+    name: Deploy staging and verify
     runs-on: ubuntu-latest
     needs: [test-unit, test, test-pwa-offline]
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
+      github.event_name == 'workflow_dispatch'
     environment: cubefsrs_ci_env
+    concurrency:
+      group: staging-deploy-${{ github.ref }}
+      cancel-in-progress: false
+    permissions:
+      contents: read
+      deployments: write
     env:
       OP_SERVICE_ACCOUNT_TOKEN: ${{ secrets.OP_SERVICE_ACCOUNT_TOKEN }}
+      RHIZOME_REPO_PATH: ${{ github.workspace }}/rhizome
 
     steps:
       - name: Checkout cubefsrs
-        uses: actions/checkout@v5
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+        with:
+          persist-credentials: false
+
+      - name: Checkout rhizome
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+        with:
+          repository: sboagy/rhizome
+          ref: main
+          path: rhizome
+          persist-credentials: false
 
       - name: Install 1Password CLI
         uses: 1password/install-cli-action@a5215d3a7f75c1629216c465ea9ab3ab399c4b71 # v4.0.0
@@ -725,67 +756,97 @@ jobs:
         with:
           node-version: "24"
           cache: "npm"
+          cache-dependency-path: |
+            package-lock.json
+            worker/package-lock.json
 
       - name: Install dependencies
-        run: npm ci
+        run: npm ci --ignore-scripts
 
-      - name: Install Worker Dependencies
-        run: cd worker && npm ci
+      - name: Install Worker dependencies
+        run: npm ci --prefix worker --ignore-scripts
 
-      # Build uses the narrower production build template so PR/test builds do
-      # not require deploy-only Cloudflare secrets.
-      - name: Build Application
-        run: npm run build
-
-      # Cloudflare credentials are loaded from 1Password via the production
-      # env template. GitHub only provides OP_SERVICE_ACCOUNT_TOKEN, and the
-      # Wrangler CLI version comes from worker/package.json.
-      - name: Deploy to Cloudflare Pages
+      - name: Install PostgreSQL 17 client
         run: |
-          op run --env-file=".env.prod.template" -- \
-            npm exec --prefix worker wrangler -- pages deploy dist \
-            --project-name=cubefsrs-pwa \
-            --branch=${{ github.event_name == 'pull_request' && github.head_ref || github.ref_name }}
+          sudo install -d /usr/share/postgresql-common/pgdg
+          sudo curl -fsSL -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc \
+            https://www.postgresql.org/media/keys/ACCC4CF8.asc
+          echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] \
+            https://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" \
+            | sudo tee /etc/apt/sources.list.d/pgdg.list
+          sudo apt-get update -q
+          sudo apt-get install -y --no-install-recommends postgresql-client-17
+          echo "/usr/lib/postgresql/17/bin" >> "$GITHUB_PATH"
 
-      - name: Output deployment URL
-        if: success()
-        run: echo "🚀 Deployment complete!"
+      - name: Apply staging CubeFSRS migrations
+        run: npm run db:staging:schema:push
 
-  deploy-worker:
-    name: Deploy Cloudflare Worker
-    runs-on: ubuntu-latest
-    needs: [test-unit, test, test-pwa-offline]
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    environment: cubefsrs_ci_env
-    env:
-      OP_SERVICE_ACCOUNT_TOKEN: ${{ secrets.OP_SERVICE_ACCOUNT_TOKEN }}
-
-    steps:
-      - name: Checkout cubefsrs
-        uses: actions/checkout@v5
-
-      - name: Install 1Password CLI
-        uses: 1password/install-cli-action@a5215d3a7f75c1629216c465ea9ab3ab399c4b71 # v4.0.0
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v5
-        with:
-          node-version: "24"
-          cache: "npm"
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Install Worker Dependencies
-        run: cd worker && npm ci
-
-      # Load Cloudflare credentials and the worker JWT secret from 1Password
-      # via the shared production env template, then deploy with wrangler.
-      - name: Deploy Worker
-        working-directory: worker
+      - name: Validate generated schema contract against staging
         run: |
-          op run --env-file="../.env.prod.template" -- bash -lc '
-            set -euo pipefail
-            printf "%s" "$SUPABASE_JWT_SECRET" | npm exec wrangler -- secret put SUPABASE_JWT_SECRET
-            npm exec wrangler -- deploy
+          op run --env-file=".env.staging.template" -- sh -c '
+            npx tsx node_modules/oosync/src/codegen-schema.ts \
+              --schema=cubefsrs \
+              --lenient \
+              --check \
+              --databaseUrl="$DATABASE_URL"
           '
+          npm run typecheck
+
+      - name: Verify staging Worker dry run
+        run: npm run worker:deploy:staging:dry-run
+
+      - name: Deploy staging Worker
+        run: npm run worker:deploy:staging
+
+      - name: Build staging Pages bundle
+        run: npm run build:staging
+
+      - name: Deploy staging Pages
+        run: |
+          op run --env-file=".env.staging.template" -- \
+            npm exec --prefix worker wrangler -- pages deploy dist \
+              --project-name=cubefsrs-pwa \
+              --branch=staging
+
+      - name: Refresh staging CubeFSRS catalog
+        if: ${{ github.event_name != 'workflow_dispatch' || github.event.inputs.skip_staging_data_refresh != 'true' }}
+        run: npm run db:staging:refresh
+
+      - name: Install Playwright browser for staging smoke
+        run: node_modules/.bin/playwright install --with-deps chromium
+
+      - name: Run staging smoke tests
+        run: npm run test:e2e:staging
+
+      - name: Create successful staging Deployment record
+        run: |
+          deployment_id="$(
+            jq -n \
+              --arg ref "${GITHUB_SHA}" \
+              --arg environment "staging" \
+              --arg description "CubeFSRS staging deploy verified by CI" \
+              '{ref: $ref, environment: $environment, auto_merge: false, required_contexts: [], description: $description}' \
+            | gh api "repos/${GITHUB_REPOSITORY}/deployments" \
+              --method POST \
+              --input - \
+              --jq '.id'
+          )"
+
+          gh api "repos/${GITHUB_REPOSITORY}/deployments/${deployment_id}/statuses" \
+            --method POST \
+            -f state="success" \
+            -f environment="staging" \
+            -f environment_url="https://staging.cubefsrs.com" \
+            -f log_url="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}" \
+            -f description="Staging deploy, catalog refresh, and smoke tests passed"
+
+          {
+            echo "### Staging deployment proof"
+            echo
+            echo "- SHA: \`${GITHUB_SHA}\`"
+            echo "- Deployment ID: \`${deployment_id}\`"
+            echo "- Environment: \`staging\`"
+            echo "- Status: \`success\`"
+          } >> "$GITHUB_STEP_SUMMARY"
+        env:
+          GH_TOKEN: ${{ github.token }}

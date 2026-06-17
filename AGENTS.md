@@ -64,6 +64,30 @@ Prefer following this structure rather than inventing a new one unless the task 
 - Verify Supabase/oosync boundaries against the current files before extending them; they exist now, but some older Firebase-era code and docs may still be present.
 - If you introduce new cross-repo integration, document whether it is current-state compatible or a deliberate step toward the target architecture.
 
+## Schema Compatibility Gate
+
+Agents must treat production schema compatibility as a code-review gate for every Cubefsrs migration, generated-contract change, sync table change, and browser/Worker query change.
+
+Default rule: every migration promoted through the staging-to-production workflow must be backward-compatible with the currently deployed production app and Worker until the new Worker and Pages deployment completes. CI can verify that migrations apply and generated contracts match, but it cannot prove semantic compatibility for destructive or behavioral changes.
+
+When generating schema changes:
+
+- Prefer additive, backward-compatible changes: new tables, new nullable columns, new columns with safe defaults, new indexes, new views/functions, and non-breaking triggers.
+- Adding a `NOT NULL` column requires a safe default or a backfill path that keeps old code working. Otherwise split it into add nullable, backfill, then enforce.
+- Adding constraints, unique indexes, foreign keys, or stricter checks requires validating/backfilling existing production data first; use low-risk patterns such as `NOT VALID` plus later validation where appropriate.
+- Treat column type changes, renames, semantic changes, nullability tightening, primary-key changes, RLS changes, and trigger behavior changes as potentially breaking unless proven otherwise.
+- Never delete columns, tables, views/functions used by existing code, enum values, or compatibility triggers in the same release that removes their last code use. Use expand/contract.
+
+Expand/contract is required for potentially breaking changes:
+
+1. Expand: add the new schema shape while the old shape still works; backfill if needed.
+2. Switch: deploy app/Worker/codegen changes that use the new shape while keeping old compatibility.
+3. Contract: in a later release, after old service workers/clients/workers are no longer expected to use the old shape, remove old schema and compatibility code.
+
+When reviewing schema-related changes, agents must call out whether the change is additive or potentially breaking, what old app/Worker/browser bundle behavior must continue to work during deployment, whether generated artifacts were regenerated from source migrations rather than hand-edited, whether synced-table changes require adapter/metadata/Worker/E2E updates, and whether PWA service-worker overlap creates old-client risk.
+
+If no backward-compatible solution is obvious, do not quietly generate a destructive migration. Stop and alert the developer with the incompatibility, likely production risk, and at least one expand/contract or manual migration option.
+
 ## Firebase and Persistence Guidance
 
 - Current auth/data flows appear to live in `src/services/firebase.ts` and local persistence helpers.

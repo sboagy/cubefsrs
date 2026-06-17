@@ -255,4 +255,4 @@ export const test = base.extend<ICubeFSRSFixtures>({
 });
 
 export { expect } from "@playwright/test";
-export { TEST_USERS, getTestUserByWorkerIndex };
+export { getTestUserByWorkerIndex, TEST_USERS };

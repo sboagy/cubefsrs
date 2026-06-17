@@ -13,6 +13,22 @@ binding = "HYPERDRIVE"
 id = "e7f5143597204a649319d5312b3355f3"
 localConnectionString = "postgresql://postgres:postgres@127.0.0.1:54322/postgres"
 
+# --- STAGING SETTINGS (Overrides) ---
+[env.staging]
+name = "cubefsrs-sync-worker-staging"
+
+[[env.staging.hyperdrive]]
+binding = "HYPERDRIVE"
+id = "9514b1eccf354ebcb33d7ca490d5cbde"
+
+[env.staging.vars]
+# The deploy script overrides this with the real staging URL from
+# .env.staging.template via `wrangler deploy --var SUPABASE_URL:$SUPABASE_URL`.
+# Keep this explicit non-production placeholder so env.staging never inherits
+# the top-level production SUPABASE_URL on direct/manual Wrangler invocation.
+SUPABASE_URL = "https://staging-supabase-url.invalid"
+SYNC_DIAGNOSTICS = "true"
+
 [vars]
 # Production worker runtime config. Keep this aligned with the production
 # Supabase project used by the app build env.
