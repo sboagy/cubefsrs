@@ -24,6 +24,16 @@ function section(content, startPattern) {
 		: content.slice(start, afterHeader + 1 + next);
 }
 
+function tomlKeys(sectionContent) {
+	return new Set(
+		sectionContent
+			.split("\n")
+			.map((line) => line.replace(/#.*/, "").trim())
+			.map((line) => line.match(/^([A-Za-z_][A-Za-z0-9_]*)\s*=/)?.[1])
+			.filter(Boolean),
+	);
+}
+
 async function main() {
 	const stagingSupabaseUrl = requireEnv("SUPABASE_URL");
 	if (stagingSupabaseUrl === PRODUCTION_SUPABASE_URL) {
@@ -50,7 +60,7 @@ async function main() {
 	if (stagingHyperdrive.includes(PRODUCTION_HYPERDRIVE_ID)) {
 		throw new Error("env.staging Hyperdrive binding uses the production ID.");
 	}
-	if (!stagingVars.includes("SUPABASE_URL")) {
+	if (!tomlKeys(stagingVars).has("SUPABASE_URL")) {
 		throw new Error("env.staging vars must explicitly define SUPABASE_URL.");
 	}
 	if (stagingVars.includes(PRODUCTION_SUPABASE_URL)) {

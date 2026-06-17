@@ -11,6 +11,14 @@ CubeFSRS follows the same release shape as TuneTrees:
 7. CI creates a GitHub Deployment proof for environment `staging` tied to the exact SHA.
 8. Production is deployed manually by running `Deploy Production` with that exact SHA.
 
+## Prerequisites
+
+Before the staging pipeline can succeed, these shared infrastructure pieces must already exist:
+
+- Cloudflare Pages project `cubefsrs-pwa` in the deployment account.
+- Cloudflare Hyperdrive configuration referenced by `worker/wrangler.toml` for `[env.staging]`: `9514b1eccf354ebcb33d7ca490d5cbde`.
+- All 1Password fields referenced by `.env.staging.template`, accessible to GitHub Actions through the configured `OP_SERVICE_ACCOUNT_TOKEN`.
+
 ## Staging
 
 Staging uses:
@@ -50,6 +58,8 @@ Both scripts delegate to rhizome's app-scoped migration runner with `--migration
 Schema changes must follow the compatibility gate in `AGENTS.md`: prefer additive migrations, use expand/contract for potentially breaking changes, and regenerate generated artifacts from the migration source.
 
 ## Staging Data Refresh
+
+> Important: staging does not contain production user practice history, mnemonics, notes, or custom algorithms. The refresh is intentionally limited by privacy policy to committed global catalog data. If testing requires restoring user-owned production data to staging, follow the approval guidance in `AGENTS.md` or the operations runbook before adding any copy path.
 
 `npm run db:staging:refresh` intentionally does not copy production user-owned Cubefsrs rows. User-owned rows can include practice history, mnemonics, notes, and custom algorithms, and copying them safely requires an app-specific privacy policy.
 

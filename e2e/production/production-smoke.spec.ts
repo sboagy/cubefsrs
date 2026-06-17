@@ -67,7 +67,6 @@ test.describe("CubeFSRS production smoke", () => {
 			},
 		});
 
-		expect(response.status()).toBeLessThan(500);
-		expect(response.status()).not.toBe(404);
+		expect(response.status()).toBe(200);
 	});
 });

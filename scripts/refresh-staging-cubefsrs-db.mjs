@@ -42,12 +42,7 @@ function parseProjectRefFromDatabaseUrl(value) {
 	return userParts.length > 1 ? userParts.at(-1) : null;
 }
 
-function assertTargets({
-	sourceDbUrl,
-	targetDbUrl,
-	sourceSupabaseUrl,
-	targetSupabaseUrl,
-}) {
+function assertTargets({ targetDbUrl, sourceSupabaseUrl, targetSupabaseUrl }) {
 	const sourceRef = parseProjectRefFromSupabaseUrl(sourceSupabaseUrl);
 	const targetRef = parseProjectRefFromSupabaseUrl(targetSupabaseUrl);
 	if (!sourceRef || !targetRef) {
@@ -55,9 +50,6 @@ function assertTargets({
 	}
 	if (sourceRef === targetRef) {
 		fail("Source and target Supabase project refs match.");
-	}
-	if (parseProjectRefFromDatabaseUrl(sourceDbUrl) !== sourceRef) {
-		fail("PRODUCTION_DATABASE_URL does not match PRODUCTION_SUPABASE_URL.");
 	}
 	if (parseProjectRefFromDatabaseUrl(targetDbUrl) !== targetRef) {
 		fail("DATABASE_URL does not match staging SUPABASE_URL.");
@@ -103,17 +95,14 @@ function main() {
 		fail("Refusing to run unless SOURCE_ENV=production and TARGET_ENV=staging.");
 	}
 
-	const sourceDbUrl = requireEnv("PRODUCTION_DATABASE_URL");
 	const targetDbUrl = requireEnv("DATABASE_URL");
 	const sourceSupabaseUrl = requireEnv("PRODUCTION_SUPABASE_URL");
 	const targetSupabaseUrl =
 		process.env.SUPABASE_URL ?? process.env.VITE_SUPABASE_URL;
 	if (!targetSupabaseUrl) fail("Missing SUPABASE_URL or VITE_SUPABASE_URL.");
 
-	mask(sourceDbUrl);
 	mask(targetDbUrl);
 	assertTargets({
-		sourceDbUrl,
 		targetDbUrl,
 		sourceSupabaseUrl,
 		targetSupabaseUrl,
