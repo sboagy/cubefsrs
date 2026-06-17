@@ -29,7 +29,7 @@ function tomlKeys(sectionContent) {
 		sectionContent
 			.split("\n")
 			.map((line) => line.replace(/#.*/, "").trim())
-			.map((line) => line.match(/^([A-Za-z_][A-Za-z0-9_]*)\s*=/)?.[1])
+			.map((line) => line.match(/^([A-Za-z_]\w*)\s*=/)?.[1])
 			.filter(Boolean),
 	);
 }
