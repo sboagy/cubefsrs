@@ -15,8 +15,6 @@
 		"noFallthroughCasesInSwitch": true,
 		"jsx": "preserve",
 		"jsxImportSource": "solid-js",
-		"ignoreDeprecations": "6.0",
-		"baseUrl": ".",
 		"skipLibCheck": true,
 		"paths": {
 			"@/*": ["./src/*"],
