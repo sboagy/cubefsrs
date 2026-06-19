@@ -41,6 +41,25 @@ Production deploy is manual:
 3. Enter the exact 40-character SHA in `deploy_sha`.
 4. Leave `override_staging_check` false unless this is an audited emergency.
 
+Optional CLI verification:
+
+```sh
+DEPLOY_SHA=<40-character-sha>
+gh api repos/sboagy/cubefsrs/deployments \
+  --method GET \
+  -F environment=staging \
+  -F ref="$DEPLOY_SHA" \
+  --jq '.[] | {id, sha, ref, environment}'
+```
+
+Then check at least one returned deployment has a successful status:
+
+```sh
+DEPLOYMENT_ID=<deployment-id>
+gh api repos/sboagy/cubefsrs/deployments/"$DEPLOYMENT_ID"/statuses \
+  --jq 'map({state, created_at, description})'
+```
+
 The production workflow checks out the exact SHA, verifies the staging proof, applies production Cubefsrs migrations through rhizome, deploys the production Worker and Pages bundle, then runs production-safe smoke tests.
 
 No data is copied from staging to production. Production data changes happen only when explicitly authored in migrations.
