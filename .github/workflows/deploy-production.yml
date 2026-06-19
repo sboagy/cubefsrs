@@ -9,10 +9,6 @@ name: Deploy Production
 on:
   workflow_dispatch:
     inputs:
-      rhizome_ref:
-        description: "Rhizome commit SHA or tag for migration scripts and schema logic"
-        required: true
-        type: string
       deploy_sha:
         description: "Exact 40-character CubeFSRS commit SHA to deploy"
         required: true
@@ -177,7 +173,7 @@ jobs:
         uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
         with:
           repository: sboagy/rhizome
-          ref: ${{ inputs.rhizome_ref }}
+          ref: main
           path: rhizome
           persist-credentials: false
 

@@ -60,7 +60,7 @@ gh api repos/sboagy/cubefsrs/deployments/"$DEPLOYMENT_ID"/statuses \
   --jq 'map({state, created_at, description})'
 ```
 
-The production workflow checks out the exact SHA, verifies the staging proof, applies production Cubefsrs migrations through rhizome, deploys the production Worker and Pages bundle, then runs production-safe smoke tests.
+The production workflow checks out the exact CubeFSRS SHA, checks out the latest `sboagy/rhizome@main` migration helper, verifies the staging proof, applies production Cubefsrs migrations through rhizome, deploys the production Worker and Pages bundle, then runs production-safe smoke tests.
 
 No data is copied from staging to production. Production data changes happen only when explicitly authored in migrations.
 
@@ -74,6 +74,8 @@ npm run db:production:schema:push
 ```
 
 Both scripts delegate to rhizome's app-scoped migration runner with `--migrations-only`, mask the resolved database URL in CI, assert the target Supabase project, and write a migration summary.
+
+On production only, the wrapper first checks whether the initial CubeFSRS schema already exists but migration `20260315000001` is missing from `supabase_migrations.schema_migrations`. If all expected baseline tables, triggers, policies, and functions are present, it records that initial migration as already applied before running pending migrations. If the schema is partial, it fails closed for manual inspection.
 
 Schema changes must follow the compatibility gate in `AGENTS.md`: prefer additive migrations, use expand/contract for potentially breaking changes, and regenerate generated artifacts from the migration source.
 

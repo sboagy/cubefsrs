@@ -7,6 +7,56 @@ import { findRhizomeRepo } from "./lib/find-rhizome.mjs";
 
 const APP_SCHEMA = "cubefsrs";
 const BASH = "/bin/bash";
+const INITIAL_MIGRATION_VERSION = "20260315000001";
+const INITIAL_MIGRATION_NAME = "cubefsrs_schema";
+const INITIAL_SCHEMA_TABLES = [
+	"alg_category",
+	"alg_subset",
+	"alg_case",
+	"user_alg_annotation",
+	"user_alg_selection",
+	"fsrs_card_state",
+	"practice_time_entry",
+	"user_settings",
+];
+const INITIAL_SCHEMA_TRIGGERS = [
+	["alg_case", "alg_case_updated_at"],
+	["user_alg_annotation", "user_alg_annotation_updated_at"],
+	["fsrs_card_state", "fsrs_card_state_updated_at"],
+	["user_settings", "user_settings_updated_at"],
+];
+const INITIAL_SCHEMA_POLICIES = [
+	["alg_category", "alg_category_select"],
+	["alg_category", "alg_category_insert"],
+	["alg_category", "alg_category_update"],
+	["alg_category", "alg_category_delete"],
+	["alg_subset", "alg_subset_select"],
+	["alg_subset", "alg_subset_insert"],
+	["alg_subset", "alg_subset_update"],
+	["alg_subset", "alg_subset_delete"],
+	["alg_case", "alg_case_select"],
+	["alg_case", "alg_case_insert"],
+	["alg_case", "alg_case_update"],
+	["alg_case", "alg_case_delete"],
+	["user_alg_annotation", "user_alg_annotation_select"],
+	["user_alg_annotation", "user_alg_annotation_insert"],
+	["user_alg_annotation", "user_alg_annotation_update"],
+	["user_alg_annotation", "user_alg_annotation_delete"],
+	["user_alg_selection", "user_alg_selection_select"],
+	["user_alg_selection", "user_alg_selection_insert"],
+	["user_alg_selection", "user_alg_selection_delete"],
+	["fsrs_card_state", "fsrs_card_state_select"],
+	["fsrs_card_state", "fsrs_card_state_insert"],
+	["fsrs_card_state", "fsrs_card_state_update"],
+	["fsrs_card_state", "fsrs_card_state_delete"],
+	["practice_time_entry", "practice_time_entry_select"],
+	["practice_time_entry", "practice_time_entry_insert"],
+	["practice_time_entry", "practice_time_entry_delete"],
+	["user_settings", "user_settings_select"],
+	["user_settings", "user_settings_insert"],
+	["user_settings", "user_settings_update"],
+	["user_settings", "user_settings_delete"],
+];
 
 function fail(message) {
 	console.error(message);
@@ -40,6 +90,41 @@ function mask(value) {
 function appendSummary(markdown) {
 	const summaryPath = process.env.GITHUB_STEP_SUMMARY;
 	if (summaryPath) appendFileSync(summaryPath, `${markdown.trimEnd()}\n`);
+}
+
+function sqlLiteral(value) {
+	return `'${value.replaceAll("'", "''")}'`;
+}
+
+function sqlValues(rows) {
+	return rows
+		.map(
+			(row) =>
+				`(${row.map((value) => sqlLiteral(value)).join(", ")})`,
+		)
+		.join(",\n");
+}
+
+function psql(databaseUrl, sql, options = {}) {
+	const result = spawnSync(
+		"psql",
+		["-d", databaseUrl, "--no-psqlrc", "-qAt", "-c", sql],
+		{
+			encoding: "utf8",
+			stdio: ["ignore", "pipe", "pipe"],
+		},
+	);
+	const stdout = result.stdout?.trim() ?? "";
+	const stderr = result.stderr?.trim() ?? "";
+	if (result.error) throw result.error;
+	if (result.status !== 0) {
+		throw new Error(
+			`${options.label ?? "psql"} failed with exit code ${result.status}${
+				stderr ? `: ${stderr}` : ""
+			}`,
+		);
+	}
+	return stdout;
 }
 
 function parseProjectRefFromSupabaseUrl(value) {
@@ -101,6 +186,155 @@ function assertTargetEnvironment({ targetEnv, databaseUrl, supabaseUrl }) {
 `);
 }
 
+function listMissingInitialSchemaObjects(databaseUrl) {
+	const tableValues = sqlValues(INITIAL_SCHEMA_TABLES.map((name) => [name]));
+	const triggerValues = sqlValues(INITIAL_SCHEMA_TRIGGERS);
+	const policyValues = sqlValues(INITIAL_SCHEMA_POLICIES);
+	const sql = `
+WITH expected_tables(table_name) AS (
+    VALUES
+${tableValues}
+),
+expected_triggers(table_name, trigger_name) AS (
+    VALUES
+${triggerValues}
+),
+expected_policies(table_name, policy_name) AS (
+    VALUES
+${policyValues}
+),
+missing_tables AS (
+    SELECT 'table:' || table_name AS missing
+    FROM expected_tables
+    WHERE NOT EXISTS (
+        SELECT 1
+        FROM pg_class c
+        JOIN pg_namespace n ON n.oid = c.relnamespace
+        WHERE n.nspname = '${APP_SCHEMA}'
+          AND c.relname = expected_tables.table_name
+          AND c.relkind IN ('r', 'p')
+    )
+),
+missing_triggers AS (
+    SELECT 'trigger:' || table_name || '.' || trigger_name AS missing
+    FROM expected_triggers
+    WHERE NOT EXISTS (
+        SELECT 1
+        FROM pg_trigger t
+        JOIN pg_class c ON c.oid = t.tgrelid
+        JOIN pg_namespace n ON n.oid = c.relnamespace
+        WHERE n.nspname = '${APP_SCHEMA}'
+          AND c.relname = expected_triggers.table_name
+          AND t.tgname = expected_triggers.trigger_name
+          AND NOT t.tgisinternal
+    )
+),
+missing_policies AS (
+    SELECT 'policy:' || table_name || '.' || policy_name AS missing
+    FROM expected_policies
+    WHERE NOT EXISTS (
+        SELECT 1
+        FROM pg_policies p
+        WHERE p.schemaname = '${APP_SCHEMA}'
+          AND p.tablename = expected_policies.table_name
+          AND p.policyname = expected_policies.policy_name
+    )
+),
+missing_functions AS (
+    SELECT 'function:set_updated_at' AS missing
+    WHERE NOT EXISTS (
+        SELECT 1
+        FROM pg_proc p
+        JOIN pg_namespace n ON n.oid = p.pronamespace
+        WHERE n.nspname = '${APP_SCHEMA}'
+          AND p.proname = 'set_updated_at'
+    )
+)
+SELECT missing
+FROM missing_tables
+UNION ALL
+SELECT missing
+FROM missing_triggers
+UNION ALL
+SELECT missing
+FROM missing_policies
+UNION ALL
+SELECT missing
+FROM missing_functions
+ORDER BY missing;
+`;
+
+	const output = psql(databaseUrl, sql, {
+		label: "initial CubeFSRS schema baseline check",
+	});
+	return output ? output.split("\n").filter(Boolean) : [];
+}
+
+function baselineExistingProductionInitialMigration(databaseUrl, targetEnv) {
+	if (targetEnv !== "production") {
+		return;
+	}
+
+	const appliedCount = Number(
+		psql(
+			databaseUrl,
+			`SELECT COUNT(*) FROM supabase_migrations.schema_migrations WHERE version = ${sqlLiteral(
+				INITIAL_MIGRATION_VERSION,
+			)}`,
+			{ label: "initial CubeFSRS migration ledger check" },
+		),
+	);
+	if (appliedCount > 0) {
+		return;
+	}
+
+	const existingTableCount = Number(
+		psql(
+			databaseUrl,
+			`SELECT COUNT(*)
+FROM pg_class c
+JOIN pg_namespace n ON n.oid = c.relnamespace
+WHERE n.nspname = ${sqlLiteral(APP_SCHEMA)}
+  AND c.relname = ANY (ARRAY[${INITIAL_SCHEMA_TABLES.map(sqlLiteral).join(", ")}])
+  AND c.relkind IN ('r', 'p')`,
+			{ label: "initial CubeFSRS table presence check" },
+		),
+	);
+	if (existingTableCount === 0) {
+		return;
+	}
+
+	const missingObjects = listMissingInitialSchemaObjects(databaseUrl);
+	if (missingObjects.length > 0) {
+		appendSummary(`
+### CubeFSRS initial migration baseline (production)
+
+- Result: \`failed\`
+- Action: production has a partial initial CubeFSRS schema but ${INITIAL_MIGRATION_VERSION} is not recorded; inspect before retrying.
+- Missing objects: \`${missingObjects.join("`, `")}\`
+`);
+		fail(
+			`Production has a partial CubeFSRS initial schema but ${INITIAL_MIGRATION_VERSION} is not recorded. Missing: ${missingObjects.join(", ")}`,
+		);
+	}
+
+	psql(
+		databaseUrl,
+		`INSERT INTO supabase_migrations.schema_migrations(version, name)
+VALUES (${sqlLiteral(INITIAL_MIGRATION_VERSION)}, ${sqlLiteral(INITIAL_MIGRATION_NAME)})
+ON CONFLICT (version) DO NOTHING`,
+		{ label: "record initial CubeFSRS migration baseline" },
+	);
+
+	appendSummary(`
+### CubeFSRS initial migration baseline (production)
+
+- Result: \`recorded existing schema\`
+- Migration: \`${INITIAL_MIGRATION_VERSION} ${INITIAL_MIGRATION_NAME}\`
+- Reason: expected baseline schema objects already exist, but the migration ledger did not record the initial migration.
+`);
+}
+
 function run(command, args, options = {}) {
 	console.log(`Running ${options.label ?? command}...`);
 	const result = spawnSync(command, args, {
@@ -138,6 +372,7 @@ function main() {
 
 	mask(databaseUrl);
 	assertTargetEnvironment({ targetEnv, databaseUrl, supabaseUrl });
+	baselineExistingProductionInitialMigration(databaseUrl, targetEnv);
 
 	const repoRoot = process.cwd();
 	const rhizomeRepo = findRhizomeRepo(repoRoot);
