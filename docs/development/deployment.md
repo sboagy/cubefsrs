@@ -34,6 +34,14 @@ The staging deploy job is serialized with `cancel-in-progress: false` so rapid m
 
 ## Production
 
+Production uses:
+
+- `.env.prod.template`
+- Cloudflare Pages project `cubefsrs-pwa`, branch `main`
+- Production app URL `https://cubefsrs-pwa.pages.dev`
+- Worker URL from `op://rhizome/shared-production/Vite/VITE_WORKER_URL`
+- production Supabase values from `op://rhizome/shared-production/...`
+
 Production deploy is manual:
 
 1. Confirm the exact SHA has a successful `staging` Deployment proof.

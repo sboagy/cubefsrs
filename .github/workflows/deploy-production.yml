@@ -239,6 +239,7 @@ jobs:
         run: npm run test:e2e:production
         env:
           OP_SERVICE_ACCOUNT_TOKEN: ${{ secrets.OP_SERVICE_ACCOUNT_TOKEN }}
+          PRODUCTION_BASE_URL: https://cubefsrs-pwa.pages.dev
 
       - name: Record production deployment summary
         if: always()
@@ -248,5 +249,5 @@ jobs:
             echo
             echo "- SHA: \`${DEPLOY_SHA}\`"
             echo "- Status: \`${{ job.status }}\`"
-            echo "- Production URL: https://cubefsrs.com"
+            echo "- Production URL: https://cubefsrs-pwa.pages.dev"
           } >> "$GITHUB_STEP_SUMMARY"
