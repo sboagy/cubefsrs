@@ -55,16 +55,16 @@ const TABLE_EXTRAS: Record<
 	SyncableTableName,
 	Pick<TableMeta, "changeCategory" | "normalize" | "columnDescriptions">
 > = {
-	alg_case: {
-		changeCategory: "catalog",
-		normalize: (row) =>
-			normalizeDatetimeFields(row, ["created_at", "updated_at"]),
-	},
 	alg_category: {
 		changeCategory: "catalog",
 	},
 	alg_subset: {
 		changeCategory: "catalog",
+	},
+	alg_case: {
+		changeCategory: "catalog",
+		normalize: (row) =>
+			normalizeDatetimeFields(row, ["created_at", "updated_at"]),
 	},
 	fsrs_card_state: {
 		changeCategory: "practice",

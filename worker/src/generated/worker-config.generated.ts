@@ -40,20 +40,6 @@ export const WORKER_SYNC_CONFIG = {
 	},
 	pull: {
 		tableRules: {
-			alg_case: {
-				kind: "compound",
-				operator: "or",
-				rules: [
-					{
-						kind: "publicOnly",
-						column: "user_id",
-					},
-					{
-						kind: "eqUserId",
-						column: "user_id",
-					},
-				],
-			},
 			alg_category: {
 				kind: "compound",
 				operator: "or",
@@ -69,6 +55,20 @@ export const WORKER_SYNC_CONFIG = {
 				],
 			},
 			alg_subset: {
+				kind: "compound",
+				operator: "or",
+				rules: [
+					{
+						kind: "publicOnly",
+						column: "user_id",
+					},
+					{
+						kind: "eqUserId",
+						column: "user_id",
+					},
+				],
+			},
+			alg_case: {
 				kind: "compound",
 				operator: "or",
 				rules: [

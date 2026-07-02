@@ -20,7 +20,7 @@
 	"dependencies": {
 		"drizzle-orm": "^0.45.2",
 		"jose": "^6.1.2",
-		"oosync": "git+https://github.com/sboagy/oosync.git#main",
+		"oosync": "git+https://github.com/sboagy/oosync.git#sync-batch-683",
 		"postgres": "^3.0.0"
 	}
 }

@@ -86,7 +86,7 @@
 		"drizzle-kit": "^0.31.9",
 		"jsdom": "^25.0.1",
 		"loglevel": "^1.9.2",
-		"oosync": "git+https://github.com/sboagy/oosync.git#main",
+		"oosync": "git+https://github.com/sboagy/oosync.git#sync-batch-683",
 		"tailwindcss": "^4.2.0",
 		"tsx": "^4.21.0",
 		"typescript": "6.0.2",
