@@ -16,9 +16,9 @@ export interface TableMetaCore {
 }
 
 export const SYNCABLE_TABLES = [
-	"alg_case",
 	"alg_category",
 	"alg_subset",
+	"alg_case",
 	"fsrs_card_state",
 	"practice_time_entry",
 	"user_alg_annotation",
@@ -29,14 +29,6 @@ export const SYNCABLE_TABLES = [
 export type SyncableTableName = (typeof SYNCABLE_TABLES)[number];
 
 export const TABLE_REGISTRY_CORE: Record<SyncableTableName, TableMetaCore> = {
-	alg_case: {
-		primaryKey: "id",
-		uniqueKeys: ["slug", "user_id"],
-		timestamps: ["created_at", "updated_at", "last_modified_at"],
-		booleanColumns: [],
-		supportsIncremental: true,
-		hasDeletedFlag: false,
-	},
 	alg_category: {
 		primaryKey: "id",
 		uniqueKeys: ["slug", "user_id"],
@@ -49,6 +41,14 @@ export const TABLE_REGISTRY_CORE: Record<SyncableTableName, TableMetaCore> = {
 		primaryKey: "id",
 		uniqueKeys: ["slug", "user_id"],
 		timestamps: ["last_modified_at"],
+		booleanColumns: [],
+		supportsIncremental: true,
+		hasDeletedFlag: false,
+	},
+	alg_case: {
+		primaryKey: "id",
+		uniqueKeys: ["slug", "user_id"],
+		timestamps: ["created_at", "updated_at", "last_modified_at"],
 		booleanColumns: [],
 		supportsIncremental: true,
 		hasDeletedFlag: false,
