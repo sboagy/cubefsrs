@@ -9,7 +9,6 @@ import {
 	type SyncableTableName as GeneratedSyncableTableName,
 	SYNCABLE_TABLES as SYNCABLE_TABLES_GENERATED,
 	TABLE_REGISTRY_CORE,
-	type TableMetaCore,
 } from "./generated/sync/table-meta.generated";
 
 export type ChangeCategory = string | null;
@@ -91,7 +90,7 @@ export const TABLE_REGISTRY_MERGED: Record<SyncableTableName, TableMeta> =
 	Object.fromEntries(
 		Object.entries(TABLE_REGISTRY_CORE).map(([tableName, core]) => {
 			const extras = TABLE_EXTRAS[tableName as SyncableTableName];
-			return [tableName, { ...(core as TableMetaCore), ...extras }];
+			return [tableName, { ...core, ...extras }];
 		}),
 	) as Record<SyncableTableName, TableMeta>;
 
@@ -165,9 +164,7 @@ export function getNormalizer(
 	| ((row: Readonly<Record<string, unknown>>) => Record<string, unknown>)
 	| undefined {
 	const normalize = TABLE_REGISTRY[tableName]?.normalize;
-	return normalize
-		? (row) => normalize(row as Record<string, unknown>)
-		: undefined;
+	return normalize ? (row) => normalize(row) : undefined;
 }
 
 export function isRegisteredTable(tableName: string): boolean {

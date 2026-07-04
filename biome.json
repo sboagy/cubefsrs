@@ -7,7 +7,14 @@
 	},
 	"files": {
 		"ignoreUnknown": false,
-		"includes": ["**", "!.yalc", "!node_modules", "!dist", "!worker/.wrangler"]
+		"includes": [
+			"**",
+			"!.yalc",
+			"!node_modules",
+			"!dist",
+			"!worker/.wrangler",
+			"!e2e/.auth"
+		]
 	},
 	"formatter": {
 		"enabled": true,
